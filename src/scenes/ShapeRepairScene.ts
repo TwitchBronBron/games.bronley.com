@@ -87,9 +87,10 @@ export default class ShapeRepairScene extends Phaser.Scene {
   }
 
   private finishRound() {
-    if (!confirm('You won! Do you want to play again?')) {
-      this.scene.switch(SceneName.TitleScene);
-    }
+    //TODO show an in-game button or something
+    // if (!confirm('You won! Do you want to play again?')) {
+    //   this.scene.switch(SceneName.TitleScene);
+    // }
     //reset the scene anyway
     this.create();
   }
