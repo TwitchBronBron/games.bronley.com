@@ -30,6 +30,20 @@ export default class ShapeRepairScene extends Phaser.Scene {
 
   create() {
     this.reset();
+
+    const startButton = this.add.text(10, 10, '←', { fontSize: '48px', color: 'white' })
+      .setOrigin(0)
+      .setPadding(20, 0, 20, 10)
+      .setStyle({ backgroundColor: '#111' })
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.create();
+        this.scene.restart();
+        this.scene.switch(SceneName.TitleScene);
+      })
+      .on('pointerover', () => startButton.setStyle({ fill: '#f39c12' }))
+      .on('pointerout', () => startButton.setStyle({ fill: '#FFF' }))
+
     this.events.on('destroy', () => {
       alert('Destroyed');
     });

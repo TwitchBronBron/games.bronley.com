@@ -13,26 +13,17 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     create() {
-        const { width, height } = this.scale;
-        this.playButton = createButton(this, {
-            text: 'Play',
-            color: 'white',
-            fontSize: '40px',
-            padding: [10, 20],
-            backgroundColor: 0xFF0000,
-            pointerup: () => {
+        const startButton = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Start game', { fontSize: '48px', color: 'white' })
+            .setOrigin(0.5)
+            .setPadding(40)
+            .setStyle({ backgroundColor: '#111' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
                 this.scene.switch(SceneName.ShapeRepairScene);
-            }
-        });
-
-        computeContainerSize(this.playButton, width, height);
-
-        this.playButton.x = (width / 2) - (this.playButton.width / 2);
-        this.playButton.y = (height / 2) - (this.playButton.height / 2);
-        this.add.existing(this.playButton);
+            })
+            .on('pointerover', () => startButton.setStyle({ fill: '#f39c12' }))
+            .on('pointerout', () => startButton.setStyle({ fill: '#FFF' }))
     }
-
-    private playButton!: Container;
 
     public update(time: number, delta: number): void {
     }
