@@ -12,9 +12,14 @@ export default class ShapeRepairScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.audio('whoosh', ['assets/audio/whoosh.mp3']).on('filecomplete', () => {
-            this.woosh = this.sound.add('whoosh');
+        this.load.audio('whoosh', ['assets/audio/whoosh.mp3']).on('filecomplete-audio-whoosh', (key, file) => {
+            this.whoosh = this.sound.add('whoosh');
         });
+
+        this.load.audio('sparkle', ['assets/audio/sparkle.mp3']).on('filecomplete-audio-sparkle', (key, file) => {
+            this.twinklesparkle = this.sound.add('sparkle');
+        });
+
     }
 
     private resetPositionSpeed = 4500;
@@ -37,7 +42,8 @@ export default class ShapeRepairScene extends Phaser.Scene {
 
     private backButton!: Text;
 
-    private woosh!: Phaser.Sound.BaseSound;
+    private whoosh!: Phaser.Sound.BaseSound;
+    private twinklesparkle!: Phaser.Sound.BaseSound;
 
     create() {
         this.reset();
@@ -136,6 +142,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
     }
 
     private finishRound() {
+        this.twinklesparkle.play();
         this.addPlayAgainButton();
     }
 
@@ -168,7 +175,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
 
         const timeline = this.tweens.createTimeline();
 
-        this.woosh.play();
+        this.whoosh?.play();
         timeline
             .add({ targets: [sprite, partner], duration: 50, yoyo: true, scaleX: 1.2, scaleY: 1.2 })
             .add({ targets: [sprite, partner], duration: 50, scaleX: .001, scaleY: .001 })
