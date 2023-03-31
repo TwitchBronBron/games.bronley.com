@@ -12,8 +12,8 @@ export default class ShapeRepairScene extends Phaser.Scene {
     }
 
     private resetPositionSpeed = 4500;
-    private quadrantColumnCount = 6;
-    private quadrantRowCount = 4;
+    private quadrantColumnCount = 2;
+    private quadrantRowCount = 3;
 
     private distinctColors = [0xe6194B, 0x3cb44b, 0xffe119, 0x4363d8, 0xf58231, 0x911eb4, 0x42d4f4, 0xf032e6, 0xbfef45, 0xfabed4, 0x469990, 0xdcbeff, 0x9A6324, 0xfffac8, 0x800000, 0xaaffc3, 0x808000, 0xffd8b1, 0x000075, 0xa9a9a9, 0xffffff, 0x000000];
 
@@ -41,6 +41,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
         });
         //break the window into quadrants. We always need an even number of quadrants
         this.calculateQuadrants(this.quadrantColumnCount, this.quadrantRowCount)
+
         //draw the grid for debugging purposes
         this.drawQuadrants();
 
@@ -141,12 +142,23 @@ export default class ShapeRepairScene extends Phaser.Scene {
         sprite.y = partner.y;
 
         //grey out the finished shapes
-        sprite.alpha = .2;
-        partner.alpha = .2;
+        // sprite.alpha = .1;
+        // partner.alpha = .1;
         this.pairsRemaining--;
-        if (this.pairsRemaining <= 0) {
-            this.finishRound();
-        }
+
+        const timeline = this.tweens.createTimeline();
+
+        timeline
+            .add({ targets: [sprite, partner], duration: 50, yoyo: true, scaleX: 1.2, scaleY: 1.2 })
+            .add({ targets: [sprite, partner], duration: 50, scaleX: .001, scaleY: .001 })
+            .once('complete', () => {
+                sprite.destroy();
+                partner.destroy();
+                if (this.pairsRemaining <= 0) {
+                    this.finishRound();
+                }
+            })
+            .play();
     }
 
     private movements: Array<{ sprite: Sprite; destination: Point; }> = [];
@@ -205,7 +217,6 @@ export default class ShapeRepairScene extends Phaser.Scene {
     private drawQuadrants() {
         for (const quadrant of this.quadrants) {
             const graphics = this.add.graphics();
-            graphics.lineStyle(1, 0x000000, 1);
             graphics.strokeRect(quadrant.x, quadrant.y, quadrant.width, quadrant.height);
             graphics.stroke();
         }
