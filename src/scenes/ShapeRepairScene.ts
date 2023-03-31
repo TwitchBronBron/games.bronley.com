@@ -11,6 +11,12 @@ export default class ShapeRepairScene extends Phaser.Scene {
         super(SceneName.ShapeRepairScene);
     }
 
+    preload() {
+        this.load.audio('whoosh', ['assets/audio/whoosh.mp3']).on('filecomplete', () => {
+            this.woosh = this.sound.add('whoosh');
+        });
+    }
+
     private resetPositionSpeed = 4500;
     private quadrantColumnCount = 4;
     private quadrantRowCount = 3;
@@ -30,6 +36,8 @@ export default class ShapeRepairScene extends Phaser.Scene {
     private shapePairMap = new Map<Sprite, Sprite>();
 
     private backButton!: Text;
+
+    private woosh!: Phaser.Sound.BaseSound;
 
     create() {
         this.reset();
@@ -160,6 +168,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
 
         const timeline = this.tweens.createTimeline();
 
+        this.woosh.play();
         timeline
             .add({ targets: [sprite, partner], duration: 50, yoyo: true, scaleX: 1.2, scaleY: 1.2 })
             .add({ targets: [sprite, partner], duration: 50, scaleX: .001, scaleY: .001 })
