@@ -12,7 +12,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
     }
 
     private resetPositionSpeed = 4500;
-    private quadrantColumnCount = 2;
+    private quadrantColumnCount = 4;
     private quadrantRowCount = 3;
 
     private distinctColors = [0xe6194B, 0x3cb44b, 0xffe119, 0x4363d8, 0xf58231, 0x911eb4, 0x42d4f4, 0xf032e6, 0xbfef45, 0xfabed4, 0x469990, 0xdcbeff, 0x9A6324, 0xfffac8, 0x800000, 0xaaffc3, 0x808000, 0xffd8b1, 0x000075, 0xa9a9a9, 0xffffff, 0x000000];
@@ -36,9 +36,6 @@ export default class ShapeRepairScene extends Phaser.Scene {
 
         this.addBackButton();
 
-        this.events.on('destroy', () => {
-            alert('Destroyed');
-        });
         //break the window into quadrants. We always need an even number of quadrants
         this.calculateQuadrants(this.quadrantColumnCount, this.quadrantRowCount)
 
@@ -49,8 +46,12 @@ export default class ShapeRepairScene extends Phaser.Scene {
         const quadrants = [...this.quadrants];
         const colors = [...this.distinctColors];
         while (quadrants.length > 0) {
-            this.createShapePair(colors.shift()!, spliceRandom(quadrants), spliceRandom(quadrants));
-            this.pairsRemaining++;
+            const q1 = spliceRandom(quadrants);
+            const q2 = spliceRandom(quadrants);
+            if (q1 && q2) {
+                this.createShapePair(colors.shift()!, q1, q2);
+                this.pairsRemaining++;
+            }
         }
 
         this.input.on('drag', function (pointer: Pointer, gameObject: Sprite, dragX: number, dragY: number) {
@@ -109,13 +110,25 @@ export default class ShapeRepairScene extends Phaser.Scene {
             .on('pointerout', () => this.backButton.setStyle({ fill: '#FFF' }))
     }
 
-    private finishRound() {
+    private addPlayAgainButton() {
+        var playAgain = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Play Again', { fontSize: '48px', color: 'white' })
+            .setOrigin(.5)
+            .setPadding(50)
+            .setResolution(10)
+            .setStyle({ backgroundColor: 'green' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
+                this.create();
+                this.scene.restart();
+            })
+            .setDepth(10)
+            .on('pointerover', () => this.backButton.setStyle({ fill: '#f39c12' }))
+            .on('pointerout', () => this.backButton.setStyle({ fill: '#FFF' }))
         //TODO show an in-game button or something
-        // if (!confirm('You won! Do you want to play again?')) {
-        //   this.scene.switch(SceneName.TitleScene);
-        // }
-        //reset the scene anyway
-        this.create();
+    }
+
+    private finishRound() {
+        this.addPlayAgainButton();
     }
 
 
@@ -127,7 +140,6 @@ export default class ShapeRepairScene extends Phaser.Scene {
         }
         this.shapePairMap = new Map();
         this.input.removeAllListeners();
-        debugger;
         for (const child of this.children.list) {
             child.destroy();
         }
