@@ -4,6 +4,7 @@ import { getRandomIntInclusive, spliceRandom } from '../util';
 type GameObject = Phaser.GameObjects.GameObject;
 type Sprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 type Pointer = Phaser.Input.Pointer;
+type Text = Phaser.GameObjects.Text;
 
 export default class ShapeRepairScene extends Phaser.Scene {
   constructor() {
@@ -28,10 +29,12 @@ export default class ShapeRepairScene extends Phaser.Scene {
    */
   private shapePairMap = new Map<Sprite, Sprite>();
 
+  private backButton!: Text;
+
   create() {
     this.reset();
 
-    const startButton = this.add.text(10, 10, '←', { fontSize: '48px', color: 'white' })
+    this.backButton = this.add.text(10, 10, '←', { fontSize: '48px', color: 'white' })
       .setOrigin(0)
       .setPadding(20, 0, 20, 10)
       .setStyle({ backgroundColor: '#111' })
@@ -41,8 +44,9 @@ export default class ShapeRepairScene extends Phaser.Scene {
         this.scene.restart();
         this.scene.switch(SceneName.TitleScene);
       })
-      .on('pointerover', () => startButton.setStyle({ fill: '#f39c12' }))
-      .on('pointerout', () => startButton.setStyle({ fill: '#FFF' }))
+      .setDepth(10)
+      .on('pointerover', () => this.backButton.setStyle({ fill: '#f39c12' }))
+      .on('pointerout', () => this.backButton.setStyle({ fill: '#FFF' }))
 
     this.events.on('destroy', () => {
       alert('Destroyed');
@@ -122,6 +126,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
     for (const child of this.children.list) {
       child.destroy();
     }
+    this.backButton?.destroy();
   }
 
   private finalizePair(sprite: Sprite) {
