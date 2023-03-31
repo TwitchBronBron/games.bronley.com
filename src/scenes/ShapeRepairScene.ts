@@ -134,11 +134,15 @@ export default class ShapeRepairScene extends Phaser.Scene {
     }
 
     private finalizePair(sprite: Sprite) {
-        sprite.disableInteractive();
         const partner = this.shapePairMap.get(sprite)!;
+        sprite.disableInteractive();
+        partner?.disableInteractive();
         sprite.x = partner.x;
         sprite.y = partner.y;
-        partner?.disableInteractive();
+
+        //grey out the finished shapes
+        sprite.alpha = .2;
+        partner.alpha = .2;
         this.pairsRemaining--;
         if (this.pairsRemaining <= 0) {
             this.finishRound();
