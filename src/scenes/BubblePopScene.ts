@@ -12,43 +12,62 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     /**
-     * Pixels of padding between each bubble
-     */
-    private padding = 10;
-    /**
      * The percent of the entire window each bubble should be
      */
-    private bubbleScale = .17;
-
+    private bubbleSize = 150;
 
     preload() {
+        console.log('preload bubble scene');
         this.load.image('bubble', 'assets/images/bubble.png');
 
         this.load.audio('pop', 'assets/audio/pop.mp3').once('filecomplete-audio-pop', (key: string) => {
-            this.pop = this.sound.add(key);
+            console.log('pop sound loaded');
+            this.popSound = this.sound.add(key);
         });
 
-        this.load.audio('sparkle', ['assets/audio/sparkle.mp3']).once('filecomplete-audio-sparkle', () => {
-            this.victory = this.sound.add('sparkle');
+        this.load.audio('victory', ['assets/audio/sparkle.mp3']).once('filecomplete-audio-victory', () => {
+            console.log('victory sound loaded');
+            this.victorySound = this.sound.add('victory');
         });
 
     }
 
     create() {
+        console.log('create bubble scene');
         this.addBackButton();
         this.computeSizing();
-        this.createBubbleGrid();
+
+        const group = this.add.group();
+
+        const maxBubblesHoriz = Math.round(this.gameWidth / this.bubbleSize);
+        const maxBubblesVert = Math.round(this.gameHeight / this.bubbleSize);
+
+        for (let i = 0; i < maxBubblesHoriz * maxBubblesVert; i++) {
+            group.add(
+                this.createBubble(0, 0)
+            );
+        }
+
+        Phaser.Actions.GridAlign(group.getChildren(), {
+            width: maxBubblesHoriz,
+            height: maxBubblesVert,
+            position: Phaser.Display.Align.CENTER,
+            cellWidth: this.bubbleSize,
+            cellHeight: this.bubbleSize,
+            x: this.bubbleSize / 2 + 10,
+            y: this.bubbleSize / 2 + 10
+        });
     }
 
     finalize() {
-        this.victory?.play();
+        this.victorySound?.play();
         this.addPlayAgainButton();
     }
 
     private backButton!: Text;
 
-    private pop!: Phaser.Sound.BaseSound;
-    private victory!: Phaser.Sound.BaseSound;
+    private popSound!: Phaser.Sound.BaseSound;
+    private victorySound!: Phaser.Sound.BaseSound;
     private colorFactory = createColorFactory();
 
     private bubbleWidth = 0;
@@ -57,35 +76,16 @@ export default class BubblePopScene extends Phaser.Scene {
     private get gameWidth() {
         return this.scale.gameSize.width;
     }
+    private get gameHeight() {
+        return this.scale.gameSize.height;
+    }
 
     private bubbles = new Set<Sprite>();
-
-    createBubbleGrid() {
-        let y = this.padding;
-        while (true) {
-            this.createBubbleRow(y);
-            y += this.padding + this.bubbleHeight;
-            if (y >= this.scale.gameSize.height) {
-                break;
-            }
-        }
-    }
-
-    private createBubbleRow(y: number) {
-        let x = this.padding;
-        while (true) {
-            this.createBubble(x + this.bubbleWidth / 2, y + this.bubbleHeight / 2);
-            x += this.padding + this.bubbleWidth;
-            if (x >= this.scale.gameSize.width) {
-                break;
-            }
-        }
-    }
 
     private popBubble(bubble: Sprite) {
         bubble.setOrigin(.5, .5);
         // bubble.destroy();
-        this.pop?.play();
+        this.popSound?.play();
         bubble.tint = 0xFFFFFF;
         bubble.tintFill = true;
         this.tweens.add({
@@ -105,9 +105,11 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private createBubble(x: number, y: number) {
-        const bubble = this.add.sprite(x, y, 'bubble');
-        bubble.displayWidth = this.gameWidth * this.bubbleScale;
-        bubble.scaleY = bubble.scaleX;
+        const bubble = this.make.sprite({
+            key: 'bubble'
+        });
+        bubble.displayWidth = this.bubbleSize
+        bubble.displayHeight = this.bubbleSize;
         bubble.tint = this.colorFactory();
         bubble.setPosition(x, y);
         bubble.setInteractive();
@@ -144,7 +146,6 @@ export default class BubblePopScene extends Phaser.Scene {
             .setStyle({ backgroundColor: '#111' })
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
-                this.create();
                 this.scene.restart();
                 this.scene.switch(SceneName.TitleScene);
             })
@@ -162,7 +163,6 @@ export default class BubblePopScene extends Phaser.Scene {
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
                 this.scene.restart();
-                // this.create();
             })
             .setDepth(10)
             .on('pointerover', () => playAgain.setStyle({ fill: '#f39c12' }))

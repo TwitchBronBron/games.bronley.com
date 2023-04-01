@@ -12,7 +12,8 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     create() {
-        this.add.image(this.cameras.main.centerX - 250, this.cameras.main.centerY, 'bubble-tile')
+                this.scene.switch(SceneName.BubblePopScene);
+                this.add.image(this.cameras.main.centerX - 250, this.cameras.main.centerY, 'bubble-tile')
             .setDisplaySize(300, 300)
             .setInteractive()
             .on('pointerdown', () => {

@@ -5,47 +5,32 @@ type GameObject = Phaser.GameObjects.GameObject;
 type Sprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 type Pointer = Phaser.Input.Pointer;
 type Text = Phaser.GameObjects.Text;
+type BaseSound = Phaser.Sound.BaseSound;
 
 export default class ShapeRepairScene extends Phaser.Scene {
     constructor() {
         super(SceneName.ShapeRepairScene);
     }
 
+    private quadrantColumnCount = 1;
+    private quadrantRowCount = 3;
+    private resetPositionSpeed = 4500;
+
     preload() {
+        console.log('preload shape scene');
         this.load.audio('whoosh', ['assets/audio/whoosh.mp3']).once('filecomplete-audio-whoosh', () => {
-            this.whoosh = this.sound.add('whoosh');
+            console.log('whoosh sound loaded');
+            this.whooshSound = this.sound.add('whoosh');
         });
 
-        this.load.audio('sparkle', ['assets/audio/sparkle.mp3']).once('filecomplete-audio-sparkle', () => {
-            this.twinklesparkle = this.sound.add('sparkle');
+        this.load.audio('victory', ['assets/audio/sparkle.mp3']).once('filecomplete-audio-victory', () => {
+            console.log('victory sound loaded');
+            this.victorySound = this.sound.add('victory');
         });
-
     }
 
-    private resetPositionSpeed = 4500;
-    private quadrantColumnCount = 4;
-    private quadrantRowCount = 3;
-
-    private distinctColors = [0xe6194B, 0x3cb44b, 0xffe119, 0x4363d8, 0xf58231, 0x911eb4, 0x42d4f4, 0xf032e6, 0xbfef45, 0xfabed4, 0x469990, 0xdcbeff, 0x9A6324, 0xfffac8, 0x800000, 0xaaffc3, 0x808000, 0xffd8b1, 0x000075, 0xa9a9a9, 0xffffff, 0x000000];
-
-    private quadrants: Quadrant[] = [];
-
-    /**
-     * The number of pairs remaining. When this hits 0, this round is over!
-     */
-    private pairsRemaining = 0;
-
-    /**
-     * Links one sprite to its pair. Use for detecting if the sprites are touching when dragend occurs
-     */
-    private shapePairMap = new Map<Sprite, Sprite>();
-
-    private backButton!: Text;
-
-    private whoosh!: Phaser.Sound.BaseSound;
-    private twinklesparkle!: Phaser.Sound.BaseSound;
-
     create() {
+        console.log('create shape scene');
         this.reset();
 
         this.addBackButton();
@@ -108,6 +93,26 @@ export default class ShapeRepairScene extends Phaser.Scene {
         });
     }
 
+    private distinctColors = [0xe6194B, 0x3cb44b, 0xffe119, 0x4363d8, 0xf58231, 0x911eb4, 0x42d4f4, 0xf032e6, 0xbfef45, 0xfabed4, 0x469990, 0xdcbeff, 0x9A6324, 0xfffac8, 0x800000, 0xaaffc3, 0x808000, 0xffd8b1, 0x000075, 0xa9a9a9, 0xffffff, 0x000000];
+
+    private quadrants: Quadrant[] = [];
+
+    /**
+     * The number of pairs remaining. When this hits 0, this round is over!
+     */
+    private pairsRemaining = 0;
+
+    /**
+     * Links one sprite to its pair. Use for detecting if the sprites are touching when dragend occurs
+     */
+    private shapePairMap = new Map<Sprite, Sprite>();
+
+    private backButton!: Text;
+
+    private whooshSound!: Phaser.Sound.BaseSound;
+    private victorySound!: Phaser.Sound.BaseSound;
+
+
     private addBackButton() {
         this.backButton = this.add.text(10, 10, '←', { fontSize: '48px', color: 'white' })
             .setOrigin(0)
@@ -132,7 +137,6 @@ export default class ShapeRepairScene extends Phaser.Scene {
             .setStyle({ backgroundColor: 'green' })
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
-                this.create();
                 this.scene.restart();
             })
             .setDepth(10)
@@ -142,7 +146,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
     }
 
     private finishRound() {
-        this.twinklesparkle.play();
+        this.victorySound?.play();
         this.addPlayAgainButton();
     }
 
@@ -175,7 +179,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
 
         const timeline = this.tweens.createTimeline();
 
-        this.whoosh?.play();
+        this.whooshSound?.play();
         timeline
             .add({ targets: [sprite, partner], duration: 50, yoyo: true, scaleX: 1.2, scaleY: 1.2 })
             .add({ targets: [sprite, partner], duration: 50, scaleX: .001, scaleY: .001 })
