@@ -18,7 +18,7 @@ export default class BubblePopScene extends Phaser.Scene {
     /**
      * The percent of the entire window each bubble should be
      */
-    private bubbleScale = .175;
+    private bubbleScale = .2;
 
 
     preload() {
@@ -86,12 +86,11 @@ export default class BubblePopScene extends Phaser.Scene {
         this.tweens.add({
             targets: bubble,
             props: {
-                x: '+=3',
-                y: '+=3'
+                x: { value: '+=3', duration: getRandomIntInclusive(800, 1150), delay: getRandomIntInclusive(1, 1000), ease: 'Sine.easeInOut' },
+                y: { value: '+=3', duration: getRandomIntInclusive(800, 1150), delay: getRandomIntInclusive(1, 1000), ease: 'Sine.easeInOut' },
+                scaleX: { value: '+=.005', duration: 4000, ease: 'Sine.easeInOut' },
+                scaleY: { value: '+=.005', duration: 4000, ease: 'Sine.easeInOut' }
             },
-            ease: 'Sine.easeInOut',
-            duration: 900,
-            delay: getRandomIntInclusive(50, 1000),
             repeat: -1,
             yoyo: true
         });
