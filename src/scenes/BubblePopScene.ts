@@ -14,7 +14,7 @@ export default class BubblePopScene extends Phaser.Scene {
     /**
      * Pixels of padding between each bubble
      */
-    private padding = 8;
+    private padding = 10;
     /**
      * The percent of the entire window each bubble should be
      */
@@ -62,7 +62,7 @@ export default class BubblePopScene extends Phaser.Scene {
     private createBubbleRow(y: number) {
         let x = 0;
         while (true) {
-            this.createBubble(x, y);
+            this.createBubble(x + this.bubbleWidth / 2, y + this.bubbleHeight / 2);
             x += this.padding + this.bubbleWidth;
             if (x >= this.scale.gameSize.width) {
                 break;
@@ -75,12 +75,24 @@ export default class BubblePopScene extends Phaser.Scene {
         bubble.displayWidth = this.gameWidth * this.bubbleScale;
         bubble.scaleY = bubble.scaleX;
         bubble.tint = this.colorFactory();
-        bubble.setOrigin(0, 0);
         bubble.setPosition(x, y);
         bubble.setInteractive();
         bubble.once('pointerdown', () => {
-            bubble.destroy();
+            bubble.setOrigin(.5, .5);
+            // bubble.destroy();
             this.pop?.play();
+            bubble.tint = 0xFFFFFF;
+            bubble.tintFill = true;
+            this.tweens.add({
+                targets: bubble,
+                scaleX: 0,
+                scaleY: 0,
+                ease: 'Sine.easeInOut',
+                duration: 100,
+                onComplete: () => {
+                    bubble.destroy();
+                }
+            })
         });
         this.bubbles.push(bubble);
         this.tweens.add({
