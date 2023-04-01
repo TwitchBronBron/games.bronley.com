@@ -12,8 +12,11 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     create() {
-                this.scene.switch(SceneName.BubblePopScene);
-                this.add.image(this.cameras.main.centerX - 250, this.cameras.main.centerY, 'bubble-tile')
+        const gameName = new URLSearchParams(window.location.search).get('game');
+        if (gameName) {
+            this.scene.switch(gameName);
+        }
+        this.add.image(this.cameras.main.centerX - 250, this.cameras.main.centerY, 'bubble-tile')
             .setDisplaySize(300, 300)
             .setInteractive()
             .on('pointerdown', () => {
