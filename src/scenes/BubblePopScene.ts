@@ -54,8 +54,8 @@ export default class BubblePopScene extends Phaser.Scene {
             position: Phaser.Display.Align.CENTER,
             cellWidth: this.bubbleSize,
             cellHeight: this.bubbleSize,
-            x: this.bubbleSize / 2 + 10,
-            y: this.bubbleSize / 2 + 10
+            x: this.bubbleSize / 2,
+            y: this.bubbleSize / 2
         });
     }
 
