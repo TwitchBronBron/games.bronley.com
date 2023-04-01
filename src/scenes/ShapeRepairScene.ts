@@ -12,7 +12,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
         super(SceneName.ShapeRepairScene);
     }
 
-    private quadrantColumnCount = 1;
+    private quadrantColumnCount = 2;
     private quadrantRowCount = 3;
     private resetPositionSpeed = 4500;
 
