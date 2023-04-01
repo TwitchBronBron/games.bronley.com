@@ -82,21 +82,23 @@ export default class BubblePopScene extends Phaser.Scene {
     private bubbles = new Set<Sprite>();
 
     private popBubble(bubble: Sprite) {
-        var particle = this.add.particles('spark');
-        particle.setDepth(10);
-        var emitter = particle.createEmitter({
-            quantity: 3,
-            speed: 2000,
-            accelerationY: 30000,
-            scale: { start: 0.15, end: 0.001 },
-            blendMode: Phaser.BlendModes.SCREEN
+        const v = 50;
+        var particleManager = this.make.particles({
+            key: 'spark',
+            add: true,
+            emitters: [
+                {
+                    x: { min: bubble.x - v, max: bubble.x + v },
+                    y: { min: bubble.y - v, max: bubble.y + v },
+                    speed: 2000,
+                    quantity: 5,
+                    accelerationY: 13000,
+                    scaleX: { min: 0.05, max: .1 },
+                    scaleY: .1
+                }
+            ]
         });
-        // emitter.setTint(bubble.tintBottomLeft);
-        emitter.setPosition(bubble.x, bubble.y);
-        // emitter.setBounds(bubble.x - this.bubbleSize, bubble.y - this.bubbleSize, this.bubbleSize * 2, this.bubbleSize * 2);
 
-        bubble.setOrigin(.5, .5);
-        // bubble.destroy();
         this.popSound?.play();
         this.tweens.add({
             targets: bubble,
@@ -106,8 +108,7 @@ export default class BubblePopScene extends Phaser.Scene {
             duration: 100,
             onComplete: () => {
                 bubble.destroy();
-                emitter.stop();
-                // particle.destroy();
+                particleManager.emitters.each((e) => e.stop());
 
                 this.bubbles.delete(bubble);
                 if (this.bubbles.size === 0) {
