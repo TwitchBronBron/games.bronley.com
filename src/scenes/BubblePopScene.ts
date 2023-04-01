@@ -39,8 +39,8 @@ export default class BubblePopScene extends Phaser.Scene {
 
         const group = this.add.group();
 
-        const maxBubblesHoriz = Math.round(this.gameWidth / this.bubbleSize);
-        const maxBubblesVert = Math.round(this.gameHeight / this.bubbleSize);
+        const maxBubblesHoriz = Math.floor(this.gameWidth / this.bubbleSize);
+        const maxBubblesVert = Math.floor(this.gameHeight / this.bubbleSize);
 
         for (let i = 0; i < maxBubblesHoriz * maxBubblesVert; i++) {
             group.add(
