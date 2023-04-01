@@ -134,10 +134,10 @@ export default class BubblePopScene extends Phaser.Scene {
         this.tweens.add({
             targets: bubble,
             props: {
-                x: { value: `+=${randomInt(1, 10)}`, duration: randomInt(800, 1150), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
-                y: { value: `+=${randomInt(1, 10)}`, duration: randomInt(800, 1150), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
-                scaleX: { value: `+=.0${randomInt(1, 3)}`, duration: randomInt(900, 1500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
-                scaleY: { value: `+=.0${randomInt(1, 3)}`, duration: randomInt(900, 1500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' }
+                x: { value: `+=${randomInt(1, 10)}`, duration: randomInt(1000, 1500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
+                y: { value: `+=${randomInt(1, 10)}`, duration: randomInt(2000, 2500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
+                scaleX: { value: `+=.0${randomInt(1, 3)}`, duration: randomInt(2000, 3000), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
+                scaleY: { value: `+=.0${randomInt(1, 3)}`, duration: randomInt(1000, 2000), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' }
             },
             repeat: -1,
             yoyo: true
