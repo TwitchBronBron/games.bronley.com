@@ -1,4 +1,5 @@
 export enum SceneName {
     TitleScene = 'TitleScene',
-    ShapeRepairScene = 'ShapeRepairScene'
+    ShapeRepairScene = 'ShapeRepairScene',
+    BubblePopScene = 'BubblePopScene'
 };

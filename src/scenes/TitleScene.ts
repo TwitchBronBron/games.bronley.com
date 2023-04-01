@@ -10,7 +10,7 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     create() {
-        this.scene.switch(SceneName.ShapeRepairScene);
+        this.scene.switch(SceneName.BubblePopScene);
         const startButton = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Start game', { fontSize: '48px', color: 'white' })
             .setOrigin(0.5)
             .setResolution(10)

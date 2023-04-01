@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { SceneName } from '../constants';
-import { getRandomIntInclusive, spliceRandom } from '../util';
+import { createColorFactory, getRandomIntInclusive, spliceRandom } from '../util';
 type GameObject = Phaser.GameObjects.GameObject;
 type Sprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 type Pointer = Phaser.Input.Pointer;
@@ -12,11 +12,11 @@ export default class ShapeRepairScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.audio('whoosh', ['assets/audio/whoosh.mp3']).on('filecomplete-audio-whoosh', (key, file) => {
+        this.load.audio('whoosh', ['assets/audio/whoosh.mp3']).once('filecomplete-audio-whoosh', () => {
             this.whoosh = this.sound.add('whoosh');
         });
 
-        this.load.audio('sparkle', ['assets/audio/sparkle.mp3']).on('filecomplete-audio-sparkle', (key, file) => {
+        this.load.audio('sparkle', ['assets/audio/sparkle.mp3']).once('filecomplete-audio-sparkle', () => {
             this.twinklesparkle = this.sound.add('sparkle');
         });
 
@@ -301,7 +301,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
         //turn the circle into a texture
         graphics.generateTexture(textureName, radius * 2, radius * 2);
         //destroy the graphic now that we have a texture
-        // graphics.destroy();
+        graphics.destroy();
 
         const sprite = this.physics.add.sprite(radius, radius, textureName);
         return sprite;

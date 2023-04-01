@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SceneName } from './constants';
+import BubblePopScene from './scenes/BubblePopScene';
 import ShapeRepairScene from './scenes/ShapeRepairScene';
 import TitleScene from './scenes/TitleScene';
 
@@ -19,4 +20,5 @@ const game = new Phaser.Game({
 });
 game.scene.add(SceneName.TitleScene, TitleScene);
 game.scene.add(SceneName.ShapeRepairScene, ShapeRepairScene);
+game.scene.add(SceneName.BubblePopScene, BubblePopScene);
 game.scene.start(SceneName.TitleScene);
