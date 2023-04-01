@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { SceneName } from '../constants';
-import { createColorFactory, getRandomIntInclusive, spliceRandom } from '../util';
+import { createColorFactory, randomInt } from '../util';
 type GameObject = Phaser.GameObjects.GameObject;
 type Sprite = Phaser.GameObjects.Sprite;
 type Pointer = Phaser.Input.Pointer;
@@ -37,18 +37,17 @@ export default class BubblePopScene extends Phaser.Scene {
         this.addBackButton();
         this.computeSizing();
 
-        const group = this.add.group();
+        const bubbles = [];
 
         const maxBubblesHoriz = Math.round(this.gameWidth / this.bubbleSize) - 1;
         const maxBubblesVert = Math.round(this.gameHeight / this.bubbleSize) - 1;
 
         for (let i = 0; i < maxBubblesHoriz * maxBubblesVert; i++) {
-            group.add(
-                this.createBubble(0, 0)
-            );
+            const bubble = this.createBubble(0, 0);
+            bubbles.push(bubble);
         }
 
-        Phaser.Actions.GridAlign(group.getChildren(), {
+        Phaser.Actions.GridAlign(bubbles, {
             width: maxBubblesHoriz,
             height: maxBubblesVert,
             position: Phaser.Display.Align.CENTER,
@@ -111,8 +110,9 @@ export default class BubblePopScene extends Phaser.Scene {
         bubble.displayWidth = this.bubbleSize
         bubble.displayHeight = this.bubbleSize;
         bubble.tint = this.colorFactory();
-        bubble.setPosition(x, y);
-        bubble.setInteractive();
+        bubble.setInteractive({
+            cursor: 'pointer'
+        });
         bubble.once('pointerdown', () => {
             this.popBubble(bubble);
         });
@@ -120,10 +120,10 @@ export default class BubblePopScene extends Phaser.Scene {
         this.tweens.add({
             targets: bubble,
             props: {
-                x: { value: '+=3', duration: getRandomIntInclusive(800, 1150), delay: getRandomIntInclusive(1, 1000), ease: 'Sine.easeInOut' },
-                y: { value: '+=3', duration: getRandomIntInclusive(800, 1150), delay: getRandomIntInclusive(1, 1000), ease: 'Sine.easeInOut' },
-                scaleX: { value: '+=.005', duration: 4000, ease: 'Sine.easeInOut' },
-                scaleY: { value: '+=.005', duration: 4000, ease: 'Sine.easeInOut' }
+                x: { value: `+=${randomInt(1, 10)}`, duration: randomInt(800, 1150), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
+                y: { value: `+=${randomInt(1, 10)}`, duration: randomInt(800, 1150), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
+                scaleX: { value: `+=.0${randomInt(1, 3)}`, duration: randomInt(900, 1500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
+                scaleY: { value: `+=.0${randomInt(1, 3)}`, duration: randomInt(900, 1500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' }
             },
             repeat: -1,
             yoyo: true

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { SceneName } from '../constants';
-import { createColorFactory, getRandomIntInclusive, spliceRandom } from '../util';
+import { createColorFactory, randomInt, spliceRandom } from '../util';
 type GameObject = Phaser.GameObjects.GameObject;
 type Sprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 type Pointer = Phaser.Input.Pointer;
@@ -264,7 +264,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
      */
     private createShapePair(color: number, quadrant1: Quadrant, quadrant2: Quadrant) {
         //get a random degree that's within a range
-        const cutDegree = getRandomIntInclusive(30, 120);
+        const cutDegree = randomInt(30, 120);
         const radius = Math.min(quadrant1.width, quadrant1.height) / 2.1;
 
         const bigger = this.createCirclePart(color, radius, 0, cutDegree);

@@ -3,7 +3,7 @@ type Container = Phaser.GameObjects.Container;
 /**
  * Get a random color between a given min and max, inclusive
  */
-export function getRandomIntInclusive(min: number, max: number) {
+export function randomInt(min: number, max: number) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1) + min);
