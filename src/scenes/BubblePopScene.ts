@@ -14,7 +14,7 @@ export default class BubblePopScene extends Phaser.Scene {
     /**
      * The percent of the entire window each bubble should be
      */
-    private bubbleSize = 150;
+    private bubbleSize = 200;
 
     preload() {
         console.log('preload bubble scene');
@@ -39,8 +39,8 @@ export default class BubblePopScene extends Phaser.Scene {
 
         const group = this.add.group();
 
-        const maxBubblesHoriz = Math.floor(this.gameWidth / this.bubbleSize);
-        const maxBubblesVert = Math.floor(this.gameHeight / this.bubbleSize);
+        const maxBubblesHoriz = Math.round(this.gameWidth / this.bubbleSize) - 1;
+        const maxBubblesVert = Math.round(this.gameHeight / this.bubbleSize) - 1;
 
         for (let i = 0; i < maxBubblesHoriz * maxBubblesVert; i++) {
             group.add(
@@ -52,8 +52,8 @@ export default class BubblePopScene extends Phaser.Scene {
             width: maxBubblesHoriz,
             height: maxBubblesVert,
             position: Phaser.Display.Align.CENTER,
-            cellWidth: this.gameWidth / maxBubblesHoriz,
-            cellHeight: this.gameHeight / maxBubblesVert,
+            cellWidth: Math.floor(this.gameWidth / maxBubblesHoriz),
+            cellHeight: Math.floor(this.gameHeight / maxBubblesVert),
             x: this.bubbleSize / 2,
             y: this.bubbleSize / 2
         });
