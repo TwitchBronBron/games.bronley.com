@@ -17,8 +17,8 @@ export default class BubblePopScene extends Phaser.Scene {
     private bubbleSize = 200;
 
     preload() {
-        console.log('preload bubble scene');
         this.load.image('bubble', 'assets/images/bubble.png');
+        this.load.image('spark', 'assets/images/particle.png');
 
         this.load.audio('pop', 'assets/audio/pop.mp3').once('filecomplete-audio-pop', (key: string) => {
             console.log('pop sound loaded');
@@ -82,11 +82,22 @@ export default class BubblePopScene extends Phaser.Scene {
     private bubbles = new Set<Sprite>();
 
     private popBubble(bubble: Sprite) {
+        var particle = this.add.particles('spark');
+        particle.setDepth(10);
+        var emitter = particle.createEmitter({
+            quantity: 3,
+            speed: 2000,
+            accelerationY: 30000,
+            scale: { start: 0.15, end: 0.001 },
+            blendMode: Phaser.BlendModes.SCREEN
+        });
+        // emitter.setTint(bubble.tintBottomLeft);
+        emitter.setPosition(bubble.x, bubble.y);
+        // emitter.setBounds(bubble.x - this.bubbleSize, bubble.y - this.bubbleSize, this.bubbleSize * 2, this.bubbleSize * 2);
+
         bubble.setOrigin(.5, .5);
         // bubble.destroy();
         this.popSound?.play();
-        bubble.tint = 0xFFFFFF;
-        bubble.tintFill = true;
         this.tweens.add({
             targets: bubble,
             scaleX: 0,
@@ -95,6 +106,9 @@ export default class BubblePopScene extends Phaser.Scene {
             duration: 100,
             onComplete: () => {
                 bubble.destroy();
+                emitter.stop();
+                // particle.destroy();
+
                 this.bubbles.delete(bubble);
                 if (this.bubbles.size === 0) {
                     this.finalize();
@@ -109,7 +123,7 @@ export default class BubblePopScene extends Phaser.Scene {
         });
         bubble.displayWidth = this.bubbleSize
         bubble.displayHeight = this.bubbleSize;
-        bubble.tint = this.colorFactory();
+        bubble.setTint(this.colorFactory());
         bubble.setInteractive({
             cursor: 'pointer'
         });
