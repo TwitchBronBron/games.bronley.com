@@ -7,21 +7,49 @@ export default class TitleScene extends Phaser.Scene {
     }
 
     preload() {
+        this.load.image('bubble-tile', 'assets/images/bubble-tile.png');
+        this.load.image('shape-tile', 'assets/images/shape-tile.png');
     }
 
     create() {
-        this.scene.switch(SceneName.BubblePopScene);
-        const startButton = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Start game', { fontSize: '48px', color: 'white' })
+        this.add.image(this.cameras.main.centerX - 250, this.cameras.main.centerY, 'bubble-tile')
+            .setDisplaySize(300, 300)
+            .setInteractive()
+            .on('pointerdown', () => {
+                this.scene.switch(SceneName.BubblePopScene);
+            });
+
+        const popperButton = this.add.text(this.cameras.main.centerX - 250, this.cameras.main.centerY, 'Bubble Popper', { fontSize: '35px', color: 'white' })
             .setOrigin(0.5)
             .setResolution(10)
-            .setPadding(40)
+            .setPadding(5)
+            .setStyle({ backgroundColor: '#111' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
+                this.scene.switch(SceneName.BubblePopScene);
+            })
+            .on('pointerover', () => popperButton.setStyle({ fill: '#f39c12' }))
+            .on('pointerout', () => popperButton.setStyle({ fill: '#FFF' }))
+
+
+        this.add.image(this.cameras.main.centerX + 250, this.cameras.main.centerY, 'shape-tile')
+            .setDisplaySize(300, 300)
+            .setInteractive()
+            .on('pointerdown', () => {
+                this.scene.switch(SceneName.ShapeRepairScene);
+            });
+
+        const shapesButton = this.add.text(this.cameras.main.centerX + 250, this.cameras.main.centerY, 'Shapes', { fontSize: '35px', color: 'white' })
+            .setOrigin(0.5)
+            .setResolution(10)
+            .setPadding(75, 5, 75, 5)
             .setStyle({ backgroundColor: '#111' })
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
                 this.scene.switch(SceneName.ShapeRepairScene);
             })
-            .on('pointerover', () => startButton.setStyle({ fill: '#f39c12' }))
-            .on('pointerout', () => startButton.setStyle({ fill: '#FFF' }))
+            .on('pointerover', () => shapesButton.setStyle({ fill: '#f39c12' }))
+            .on('pointerout', () => shapesButton.setStyle({ fill: '#FFF' }))
     }
 
     public update(time: number, delta: number): void {

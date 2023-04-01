@@ -18,14 +18,20 @@ export default class BubblePopScene extends Phaser.Scene {
     /**
      * The percent of the entire window each bubble should be
      */
-    private bubbleScale = .2;
+    private bubbleScale = .17;
 
 
     preload() {
-        this.load.audio('pop', ['assets/audio/pop2.mp3']).once('filecomplete-audio-pop', (key: string) => {
+        this.load.image('bubble', 'assets/images/bubble.png');
+
+        this.load.audio('pop', 'assets/audio/pop.mp3').once('filecomplete-audio-pop', (key: string) => {
             this.pop = this.sound.add(key);
         });
-        this.load.image('bubble', 'assets/images/bubble.png');
+
+        this.load.audio('sparkle', ['assets/audio/sparkle.mp3']).once('filecomplete-audio-sparkle', () => {
+            this.victory = this.sound.add('sparkle');
+        });
+
     }
 
     create() {
@@ -34,9 +40,15 @@ export default class BubblePopScene extends Phaser.Scene {
         this.createBubbleGrid();
     }
 
+    finalize() {
+        this.victory?.play();
+        this.addPlayAgainButton();
+    }
+
     private backButton!: Text;
 
     private pop!: Phaser.Sound.BaseSound;
+    private victory!: Phaser.Sound.BaseSound;
     private colorFactory = createColorFactory();
 
     private bubbleWidth = 0;
@@ -46,10 +58,10 @@ export default class BubblePopScene extends Phaser.Scene {
         return this.scale.gameSize.width;
     }
 
-    private bubbles: Sprite[] = [];
+    private bubbles = new Set<Sprite>();
 
     createBubbleGrid() {
-        let y = 0;
+        let y = this.padding;
         while (true) {
             this.createBubbleRow(y);
             y += this.padding + this.bubbleHeight;
@@ -60,7 +72,7 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private createBubbleRow(y: number) {
-        let x = 0;
+        let x = this.padding;
         while (true) {
             this.createBubble(x + this.bubbleWidth / 2, y + this.bubbleHeight / 2);
             x += this.padding + this.bubbleWidth;
@@ -68,6 +80,28 @@ export default class BubblePopScene extends Phaser.Scene {
                 break;
             }
         }
+    }
+
+    private popBubble(bubble: Sprite) {
+        bubble.setOrigin(.5, .5);
+        // bubble.destroy();
+        this.pop?.play();
+        bubble.tint = 0xFFFFFF;
+        bubble.tintFill = true;
+        this.tweens.add({
+            targets: bubble,
+            scaleX: 0,
+            scaleY: 0,
+            ease: 'Sine.easeInOut',
+            duration: 100,
+            onComplete: () => {
+                bubble.destroy();
+                this.bubbles.delete(bubble);
+                if (this.bubbles.size === 0) {
+                    this.finalize();
+                }
+            }
+        })
     }
 
     private createBubble(x: number, y: number) {
@@ -78,23 +112,9 @@ export default class BubblePopScene extends Phaser.Scene {
         bubble.setPosition(x, y);
         bubble.setInteractive();
         bubble.once('pointerdown', () => {
-            bubble.setOrigin(.5, .5);
-            // bubble.destroy();
-            this.pop?.play();
-            bubble.tint = 0xFFFFFF;
-            bubble.tintFill = true;
-            this.tweens.add({
-                targets: bubble,
-                scaleX: 0,
-                scaleY: 0,
-                ease: 'Sine.easeInOut',
-                duration: 100,
-                onComplete: () => {
-                    bubble.destroy();
-                }
-            })
+            this.popBubble(bubble);
         });
-        this.bubbles.push(bubble);
+        this.bubbles.add(bubble);
         this.tweens.add({
             targets: bubble,
             props: {
@@ -114,6 +134,7 @@ export default class BubblePopScene extends Phaser.Scene {
         this.bubbleWidth = bubble.displayWidth;
         this.bubbleHeight = bubble.displayHeight;
         bubble.destroy();
+        this.bubbles.delete(bubble);
     }
 
     private addBackButton() {
@@ -131,4 +152,22 @@ export default class BubblePopScene extends Phaser.Scene {
             .on('pointerover', () => this.backButton.setStyle({ fill: '#f39c12' }))
             .on('pointerout', () => this.backButton.setStyle({ fill: '#FFF' }))
     }
+
+    private addPlayAgainButton() {
+        var playAgain = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Play Again', { fontSize: '48px', color: 'white' })
+            .setOrigin(.5)
+            .setPadding(50)
+            .setResolution(10)
+            .setStyle({ backgroundColor: 'green' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
+                this.scene.restart();
+                // this.create();
+            })
+            .setDepth(10)
+            .on('pointerover', () => playAgain.setStyle({ fill: '#f39c12' }))
+            .on('pointerout', () => playAgain.setStyle({ fill: '#FFF' }))
+        //TODO show an in-game button or something
+    }
+
 }
