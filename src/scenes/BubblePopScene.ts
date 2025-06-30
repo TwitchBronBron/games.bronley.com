@@ -73,7 +73,7 @@ export default class BubblePopScene extends Phaser.Scene {
             }
         });
         this.bubbles.clear();
-        
+
         // Clean up all particle managers
         this.particleManagers.forEach(manager => {
             manager.destroy();
@@ -139,7 +139,7 @@ export default class BubblePopScene extends Phaser.Scene {
 
                 // Stop the emitter and schedule cleanup
                 particleManager.stop();
-                
+
                 // Clean up particle manager after particles have fallen
                 this.time.delayedCall(2000, () => {
                     this.particleManagers.delete(particleManager);
