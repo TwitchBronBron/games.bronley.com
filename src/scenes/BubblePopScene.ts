@@ -19,12 +19,12 @@ export default class BubblePopScene extends Phaser.Scene {
     /**
      * Total number of bubbles in the game - when this bucket is empty, the player wins
      */
-    private readonly TOTAL_BUBBLES = 50;
+    private readonly TOTAL_BUBBLES = 80;
 
     /**
      * Delay in milliseconds before a popped bubble spot gets refilled
      */
-    private readonly REFILL_DELAY = 2000;
+    private readonly REFILL_DELAY = 1000;
 
     preload() {
         this.load.image('bubble', 'assets/images/bubble.png');
@@ -65,6 +65,7 @@ export default class BubblePopScene extends Phaser.Scene {
         for (let i = 0; i < this.TOTAL_BUBBLES; i++) {
             const bubble = this.createBubble(0, 0);
             bubble.setVisible(false);
+            bubble.setAlpha(1); // Ensure alpha is set to 1 for reuse
             bubble.x = -1000; // Move offscreen
             bubble.y = -1000;
             this.bubbleBucket.push(bubble);
@@ -95,6 +96,7 @@ export default class BubblePopScene extends Phaser.Scene {
         // Hide bubbles that are now offscreen and return them to bucket
         bubblesToHide.forEach(bubble => {
             bubble.setVisible(false);
+            bubble.setAlpha(1); // Reset alpha for reuse
             bubble.x = -1000;
             bubble.y = -1000;
             this.bubbleBucket.push(bubble);
@@ -126,8 +128,22 @@ export default class BubblePopScene extends Phaser.Scene {
                     bubble.y = row * this.bubbleSize + this.bubbleSize / 2;
                     bubble.setVisible(true);
 
-                    // Reset interactive state
-                    this.resetBubbleInteractivity(bubble);
+                    // Start with alpha 0 for fade-in animation
+                    bubble.setAlpha(0);
+
+                    // Animate the bubble fading in with a slight delay based on position
+                    const delay = (row + col) * 100; // Stagger the animations
+                    this.tweens.add({
+                        targets: bubble,
+                        alpha: 1,
+                        ease: 'Sine.easeOut',
+                        duration: 600,
+                        delay: delay,
+                        onComplete: () => {
+                            // Reset interactive state and animations after fade-in completes
+                            this.resetBubbleInteractivity(bubble);
+                        }
+                    });
 
                     // Add to active bubbles set
                     this.bubbles.add(bubble);
@@ -148,13 +164,14 @@ export default class BubblePopScene extends Phaser.Scene {
 
         // Don't schedule multiple refills for the same position
         if (this.pendingRefills.has(positionKey)) {
+            console.log(`Refill already pending for ${x},${y}`);
             return;
         }
 
         // Only schedule refill if we have bubbles in the bucket
         if (this.bubbleBucket.length > 0) {
             this.pendingRefills.add(positionKey);
-            console.log(`Scheduling delayed refill at ${x},${y}. Bucket has: ${this.bubbleBucket.length} bubbles`);
+            console.log(`Scheduling delayed refill at ${x},${y}. Bucket has: ${this.bubbleBucket.length} bubbles, Popped: ${this.bubblesPopped}`);
 
             // Schedule the refill after the configured delay
             this.time.delayedCall(this.REFILL_DELAY, () => {
@@ -163,24 +180,48 @@ export default class BubblePopScene extends Phaser.Scene {
                 // Double-check that we still have bubbles and the spot is still empty
                 if (this.bubbleBucket.length > 0 && this.isPositionEmpty(x, y)) {
                     const bubble = this.bubbleBucket.shift()!; // Take from bucket
-                    console.log(`Delayed refill executing. Bucket now has: ${this.bubbleBucket.length} bubbles`);
+                    console.log(`Delayed refill executing at ${x},${y}. Bucket now has: ${this.bubbleBucket.length} bubbles`);
+
+                    // FIRST: Stop any existing animations on this bubble
+                    this.tweens.killTweensOf(bubble);
+                    if ((bubble as any).floatTween) {
+                        (bubble as any).floatTween.destroy();
+                        (bubble as any).floatTween = null;
+                    }
 
                     // Position the bubble
                     bubble.x = x;
                     bubble.y = y;
                     bubble.setVisible(true);
+                    console.log(`Positioning bubble at ${x}, ${y}, visible: ${bubble.visible}`);
 
-                    // Reset interactive state and animations
-                    this.resetBubbleInteractivity(bubble);
+                    // Start with alpha 0 for fade-in animation
+                    bubble.setAlpha(0);
+
+                    // Animate the bubble fading in
+                    this.tweens.add({
+                        targets: bubble,
+                        alpha: 1,
+                        ease: 'Cubic.easeInOut',
+                        duration: 1500,
+                        onStart: () => {
+                            console.log(`Starting fade-in animation for bubble at ${bubble.x}, ${bubble.y}`);
+                        },
+                        onComplete: () => {
+                            console.log(`Fade-in complete for bubble at ${bubble.x}, ${bubble.y}, alpha: ${bubble.alpha}`);
+                            // Reset interactive state and animations after fade-in completes
+                            this.resetBubbleInteractivity(bubble);
+                        }
+                    });
 
                     // Add to active bubbles set
                     this.bubbles.add(bubble);
                 } else {
-                    console.log('Delayed refill cancelled - no bubbles or position occupied');
+                    console.log(`Delayed refill cancelled at ${x},${y} - bucket: ${this.bubbleBucket.length}, position empty: ${this.isPositionEmpty(x, y)}`);
                 }
             });
         } else {
-            console.log('No bubbles left in bucket to schedule refill');
+            console.log(`No bubbles left in bucket to schedule refill at ${x},${y}. Popped: ${this.bubblesPopped}/${this.TOTAL_BUBBLES}`);
         }
     }
 
@@ -423,14 +464,21 @@ export default class BubblePopScene extends Phaser.Scene {
     private updateProgressCounter() {
         const bubblesLeft = this.TOTAL_BUBBLES - this.bubblesPopped;
         this.progressText.setText(`Bubbles: ${bubblesLeft}`);
-    }
+    }    private resetBubbleInteractivity(bubble: Sprite) {
+        const currentX = bubble.x;
+        const currentY = bubble.y;
+        console.log(`Resetting interactivity for bubble at ${currentX}, ${currentY}`);
 
-    private resetBubbleInteractivity(bubble: Sprite) {
         // Stop any existing tweens on this bubble
         this.tweens.killTweensOf(bubble);
         if ((bubble as any).floatTween) {
             (bubble as any).floatTween.destroy();
+            (bubble as any).floatTween = null;
         }
+
+        // Make sure the bubble is still in the right position
+        bubble.x = currentX;
+        bubble.y = currentY;
 
         // Reset interactive state - remove all existing listeners and add new one
         bubble.removeAllListeners();
@@ -458,6 +506,8 @@ export default class BubblePopScene extends Phaser.Scene {
 
         // Store the new tween reference
         (bubble as any).floatTween = floatTween;
+
+        console.log(`Reset complete for bubble at ${bubble.x}, ${bubble.y}, alpha: ${bubble.alpha}, visible: ${bubble.visible}`);
     }
 
 }
