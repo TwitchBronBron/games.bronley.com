@@ -12,6 +12,14 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     /**
+     * Storage keys for persisting settings
+     */
+    private readonly STORAGE_KEYS = {
+        BUBBLE_COUNT_INDEX: 'bubblePopScene_bubbleCountIndex',
+        DRAG_TO_KILL_ENABLED: 'bubblePopScene_dragToKillEnabled'
+    };
+
+    /**
      * The size of each bubble in pixels
      */
     private bubbleSize = 200;
@@ -62,6 +70,7 @@ export default class BubblePopScene extends Phaser.Scene {
 
     } create() {
         console.log('create bubble scene');
+        this.loadSettings(); // Load saved settings before creating the scene
         this.cleanupBubbles(); // Clean up any existing bubbles from previous runs
         this.addBackButton();
         this.addDragToggle();
@@ -74,6 +83,43 @@ export default class BubblePopScene extends Phaser.Scene {
 
         // Set up drag-to-kill input handling
         this.setupDragToKill();
+    }
+
+    /**
+     * Load settings from localStorage
+     */
+    private loadSettings() {
+        try {
+            // Load bubble count index
+            const savedBubbleCountIndex = localStorage.getItem(this.STORAGE_KEYS.BUBBLE_COUNT_INDEX);
+            if (savedBubbleCountIndex !== null) {
+                const index = parseInt(savedBubbleCountIndex, 10);
+                if (index >= 0 && index < this.BUBBLE_COUNT_OPTIONS.length) {
+                    this.bubbleCountIndex = index;
+                    this.TOTAL_BUBBLES = this.BUBBLE_COUNT_OPTIONS[this.bubbleCountIndex];
+                }
+            }
+
+            // Load drag mode setting
+            const savedDragMode = localStorage.getItem(this.STORAGE_KEYS.DRAG_TO_KILL_ENABLED);
+            if (savedDragMode !== null) {
+                this.dragToKillEnabled = savedDragMode === 'true';
+            }
+        } catch (error) {
+            console.warn('Failed to load settings from localStorage:', error);
+        }
+    }
+
+    /**
+     * Save settings to localStorage
+     */
+    private saveSettings() {
+        try {
+            localStorage.setItem(this.STORAGE_KEYS.BUBBLE_COUNT_INDEX, this.bubbleCountIndex.toString());
+            localStorage.setItem(this.STORAGE_KEYS.DRAG_TO_KILL_ENABLED, this.dragToKillEnabled.toString());
+        } catch (error) {
+            console.warn('Failed to save settings to localStorage:', error);
+        }
     }
 
     private createBubbleGrid() {
@@ -509,6 +555,9 @@ export default class BubblePopScene extends Phaser.Scene {
         this.bubbleCountIndex = (this.bubbleCountIndex + 1) % this.BUBBLE_COUNT_OPTIONS.length;
         this.TOTAL_BUBBLES = this.BUBBLE_COUNT_OPTIONS[this.bubbleCountIndex];
 
+        // Save the new setting
+        this.saveSettings();
+
         // Update the display text immediately
         const displayText = this.TOTAL_BUBBLES === -1 ? 'Bubbles: ∞' : `Bubbles: ${this.TOTAL_BUBBLES}`;
         this.progressText.setText(displayText);
@@ -610,15 +659,18 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private addDragToggle() {
-        this.dragToggle = this.add.text(10, 70, 'Drag: OFF', { fontSize: '24px', color: 'white' })
+        this.dragToggle = this.add.text(10, 70, `Drag: ${this.dragToKillEnabled ? 'ON' : 'OFF'}`, { fontSize: '24px', color: 'white' })
             .setOrigin(0)
             .setPadding(15, 5, 15, 5)
-            .setStyle({ backgroundColor: '#444' })
+            .setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#444' })
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
                 this.dragToKillEnabled = !this.dragToKillEnabled;
                 this.dragToggle.setText(`Drag: ${this.dragToKillEnabled ? 'ON' : 'OFF'}`);
                 this.dragToggle.setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#444' });
+
+                // Save the new setting
+                this.saveSettings();
 
                 // Update all existing bubbles to use the new interaction mode
                 // Use a small delay to ensure the mode change is complete
