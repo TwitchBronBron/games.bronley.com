@@ -42,7 +42,7 @@ export default class BubblePopScene extends Phaser.Scene {
     /**
      * Delay in milliseconds before a popped bubble spot gets refilled
      */
-    private readonly REFILL_DELAY = 1000;
+    private readonly REFILL_DELAY = 0;
 
     /**
      * Whether drag-to-kill mode is enabled
@@ -570,19 +570,12 @@ export default class BubblePopScene extends Phaser.Scene {
             .setOrigin(1, 0)
             .setPadding(20, 10, 20, 10)
             .setStyle({ backgroundColor: '#333' })
-            .setDepth(10)
-            .setInteractive({ useHandCursor: true })
-            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
-                event.stopPropagation();
-                this.cycleBubbleCount();
-            })
-            .on('pointerover', () => this.progressText.setStyle({ fill: '#f39c12', backgroundColor: '#555' }))
-            .on('pointerout', () => this.progressText.setStyle({ fill: '#FFF', backgroundColor: '#333' }));
+            .setDepth(10);
     }
 
-    private cycleBubbleCount() {
-        // Cycle to the next bubble count option
-        this.bubbleCountIndex = (this.bubbleCountIndex + 1) % this.BUBBLE_COUNT_OPTIONS.length;
+    private cycleBubbleCount(newIndex: number) {
+        // Set the bubble count to the specified option
+        this.bubbleCountIndex = newIndex;
         this.TOTAL_BUBBLES = this.BUBBLE_COUNT_OPTIONS[this.bubbleCountIndex];
 
         // Save the new setting
@@ -754,19 +747,19 @@ export default class BubblePopScene extends Phaser.Scene {
         this.settingsPanel = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY);
         this.settingsPanel.setDepth(21);
 
-        // Panel background
-        const panelBg = this.add.rectangle(0, 0, 400, 300, 0x333333);
+        // Panel background - make it taller for the new options
+        const panelBg = this.add.rectangle(0, 0, 450, 450, 0x333333);
         panelBg.setStrokeStyle(2, 0x555555);
 
         // Panel title
-        const title = this.add.text(0, -120, 'Settings', {
+        const title = this.add.text(0, -190, 'Settings', {
             fontSize: '32px',
             color: 'white',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
         // Close button (X)
-        const closeButton = this.add.text(170, -120, '×', {
+        const closeButton = this.add.text(195, -190, '×', {
             fontSize: '36px',
             color: 'white'
         })
@@ -778,13 +771,42 @@ export default class BubblePopScene extends Phaser.Scene {
         .on('pointerover', () => closeButton.setStyle({ fill: '#f39c12', backgroundColor: '#888' }))
         .on('pointerout', () => closeButton.setStyle({ fill: '#FFF', backgroundColor: '#666' }));
 
+        // Bubble Count Selection
+        const bubbleCountLabel = this.add.text(0, -130, 'Bubble Count:', {
+            fontSize: '20px',
+            color: 'white',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        // Create radio buttons for bubble count options
+        const bubbleCountOptions: Array<{radio: Phaser.GameObjects.Arc, label: Phaser.GameObjects.Text}> = [];
+        const bubbleCountLabels = ['20', '50', '200', '∞'];
+        
+        bubbleCountLabels.forEach((label, index) => {
+            const yPosition = -90 + (index * 25);
+            const isSelected = this.bubbleCountIndex === index;
+            
+            // Radio button circle
+            const radioButton = this.add.circle(-100, yPosition, 8, isSelected ? 0x00ff00 : 0x666666);
+            radioButton.setStrokeStyle(2, 0xffffff);
+            
+            // Option label
+            const optionLabel = this.add.text(-80, yPosition, label, {
+                fontSize: '18px',
+                color: isSelected ? '#00ff00' : 'white'
+            }).setOrigin(0, 0.5);
+            
+            // Store the radio button and label
+            bubbleCountOptions.push({radio: radioButton, label: optionLabel});
+        });
+
         // Drag Mode Toggle
-        const dragLabel = this.add.text(-150, -50, 'Drag Mode:', {
+        const dragLabel = this.add.text(-150, 50, 'Drag Mode:', {
             fontSize: '20px',
             color: 'white'
         }).setOrigin(0, 0.5);
 
-        const dragToggleButton = this.add.text(50, -50, this.dragToKillEnabled ? 'ON' : 'OFF', {
+        const dragToggleButton = this.add.text(50, 50, this.dragToKillEnabled ? 'ON' : 'OFF', {
             fontSize: '20px',
             color: 'white'
         })
@@ -811,14 +833,57 @@ export default class BubblePopScene extends Phaser.Scene {
         .on('pointerover', () => dragToggleButton.setStyle({ fill: '#f39c12' }))
         .on('pointerout', () => dragToggleButton.setStyle({ fill: '#FFF' }));
 
-        const dragDescription = this.add.text(0, -10, 'When enabled, drag to pop bubbles\ninstead of clicking', {
+        const dragDescription = this.add.text(0, 90, 'When enabled, drag to pop bubbles\ninstead of clicking', {
             fontSize: '14px',
             color: '#ccc',
             align: 'center'
         }).setOrigin(0.5);
 
         // Add all elements to the container
-        this.settingsPanel.add([panelBg, title, closeButton, dragLabel, dragToggleButton, dragDescription]);
+        this.settingsPanel.add([panelBg, title, closeButton, bubbleCountLabel, dragLabel, dragToggleButton, dragDescription]);
+        
+        // Add the bubble count radio buttons to the panel
+        bubbleCountOptions.forEach(option => {
+            this.settingsPanel.add([option.radio, option.label]);
+        });
+        
+        // Add click areas to the panel (these need to be added separately as they contain interaction logic)
+        bubbleCountLabels.forEach((label, index) => {
+            const yPosition = -90 + (index * 25);
+            const clickArea = this.add.rectangle(this.cameras.main.centerX - 50, this.cameras.main.centerY + yPosition, 200, 25, 0x000000, 0)
+                .setInteractive({ useHandCursor: true })
+                .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                    event.stopPropagation();
+                    
+                    // Update all radio buttons
+                    bubbleCountOptions.forEach((option, btnIndex) => {
+                        if (btnIndex === index) {
+                            option.radio.setFillStyle(0x00ff00);
+                            option.label.setColor('#00ff00');
+                        } else {
+                            option.radio.setFillStyle(0x666666);
+                            option.label.setColor('white');
+                        }
+                    });
+                    
+                    // Update the bubble count
+                    this.cycleBubbleCount(index);
+                    
+                    // Close settings panel after selection
+                    this.time.delayedCall(300, () => this.hideSettingsPanel());
+                })
+                .on('pointerover', () => {
+                    if (this.bubbleCountIndex !== index) {
+                        bubbleCountOptions[index].label.setColor('#f39c12');
+                    }
+                })
+                .on('pointerout', () => {
+                    if (this.bubbleCountIndex !== index) {
+                        bubbleCountOptions[index].label.setColor('white');
+                    }
+                })
+                .setDepth(22);
+        });
 
         // Animate panel in
         this.settingsPanel.setAlpha(0);
