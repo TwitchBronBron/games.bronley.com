@@ -265,25 +265,25 @@ export default class BubblePopScene extends Phaser.Scene {
         const scaleFactor = this.getUIScaleFactor();
 
         if (this.backButton) {
-            // Scale the back button
-            const backFontSize = Math.round(48 * scaleFactor);
-            const backPaddingH = Math.round(20 * scaleFactor);
-            const backPaddingV = Math.round(10 * scaleFactor);
+            // Scale the back button - make it larger on mobile
+            const backFontSize = Math.round(60 * scaleFactor); // Increased from 48 to 60
+            const backPaddingH = Math.round(25 * scaleFactor); // Increased from 20 to 25
+            const backPaddingV = Math.round(12 * scaleFactor); // Increased from 10 to 12
 
             this.backButton.setStyle({ fontSize: `${backFontSize}px` });
             this.backButton.setPadding(backPaddingH, 0, backPaddingH, backPaddingV);
         }
 
         if (this.settingsButton) {
-            // Scale the settings button
-            const settingsFontSize = Math.round(36 * scaleFactor);
-            const settingsPadding = Math.round(15 * scaleFactor);
-            const settingsPaddingV = Math.round(10 * scaleFactor);
+            // Scale the settings button - make it larger on mobile
+            const settingsFontSize = Math.round(45 * scaleFactor); // Increased from 36 to 45
+            const settingsPadding = Math.round(18 * scaleFactor); // Increased from 15 to 18
+            const settingsPaddingV = Math.round(12 * scaleFactor); // Increased from 10 to 12
 
             // Reposition it relative to the back button
             if (this.backButton) {
                 const backButtonBounds = this.backButton.getBounds();
-                const settingsX = backButtonBounds.right + (Math.round(20 * scaleFactor) * 0.5);
+                const settingsX = backButtonBounds.right + (Math.round(25 * scaleFactor) * 0.5); // Adjusted spacing
                 const settingsY = backButtonBounds.centerY;
 
                 this.settingsButton.setPosition(settingsX, settingsY);
@@ -577,11 +577,11 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private addBackButton() {
-        // Use the same scaling system as repositionButtons
+        // Use the same scaling system as repositionButtons - make buttons larger on mobile
         const scaleFactor = this.getUIScaleFactor();
-        const backButtonFontSize = Math.round(48 * scaleFactor);
-        const backPaddingH = Math.round(20 * scaleFactor);
-        const backPaddingV = Math.round(10 * scaleFactor);
+        const backButtonFontSize = Math.round(60 * scaleFactor); // Increased from 48 to 60
+        const backPaddingH = Math.round(25 * scaleFactor); // Increased from 20 to 25
+        const backPaddingV = Math.round(12 * scaleFactor); // Increased from 10 to 12
 
         this.backButton = this.add.text(10, 10, '←', {
             fontSize: `${backButtonFontSize}px`,
@@ -600,10 +600,10 @@ export default class BubblePopScene extends Phaser.Scene {
             .on('pointerover', () => this.backButton.setStyle({ fill: '#f39c12' }))
             .on('pointerout', () => this.backButton.setStyle({ fill: '#FFF' }))
 
-        // Calculate settings button dimensions using the same scaling system
-        const settingsButtonFontSize = Math.round(36 * scaleFactor);
-        const settingsPadding = Math.round(15 * scaleFactor);
-        const settingsPaddingV = Math.round(10 * scaleFactor);
+        // Calculate settings button dimensions using the same scaling system - make it larger on mobile
+        const settingsButtonFontSize = Math.round(45 * scaleFactor); // Increased from 36 to 45
+        const settingsPadding = Math.round(18 * scaleFactor); // Increased from 15 to 18
+        const settingsPaddingV = Math.round(12 * scaleFactor); // Increased from 10 to 12
 
         // Calculate position for settings button to be next to back button
         const backButtonBounds = this.backButton.getBounds();
