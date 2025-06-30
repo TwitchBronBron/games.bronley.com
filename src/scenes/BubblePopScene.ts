@@ -376,6 +376,7 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private backButton!: Text;
+    private settingsButton!: Text;
     private dragToggle!: Text;
     private progressText!: Text;
     private progressHint!: Text;
@@ -515,6 +516,19 @@ export default class BubblePopScene extends Phaser.Scene {
             .setDepth(10)
             .on('pointerover', () => this.backButton.setStyle({ fill: '#f39c12' }))
             .on('pointerout', () => this.backButton.setStyle({ fill: '#FFF' }))
+
+        // Add settings button under the back button
+        this.settingsButton = this.add.text(10, 80, '⚙', { fontSize: '36px', color: 'white' })
+            .setOrigin(0)
+            .setPadding(15, 5, 15, 5)
+            .setStyle({ backgroundColor: '#333' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
+                this.toggleSettingsPanel();
+            })
+            .setDepth(10)
+            .on('pointerover', () => this.settingsButton.setStyle({ fill: '#f39c12', backgroundColor: '#555' }))
+            .on('pointerout', () => this.settingsButton.setStyle({ fill: '#FFF', backgroundColor: '#333' }))
     }
 
     private addPlayAgainButton() {
@@ -659,7 +673,7 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private addDragToggle() {
-        this.dragToggle = this.add.text(10, 70, `Drag: ${this.dragToKillEnabled ? 'ON' : 'OFF'}`, { fontSize: '24px', color: 'white' })
+        this.dragToggle = this.add.text(10, 140, `Drag: ${this.dragToKillEnabled ? 'ON' : 'OFF'}`, { fontSize: '24px', color: 'white' })
             .setOrigin(0)
             .setPadding(15, 5, 15, 5)
             .setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#444' })
@@ -721,6 +735,15 @@ export default class BubblePopScene extends Phaser.Scene {
             }
         }
         return null;
+    }
+
+    private toggleSettingsPanel() {
+        // For now, just show a simple alert or console message
+        // This can be expanded later to show a proper settings panel
+        console.log('Settings panel toggle - coming soon!');
+
+        // You could implement a proper settings overlay here
+        // For example, show/hide a panel with various game options
     }
 
 }
