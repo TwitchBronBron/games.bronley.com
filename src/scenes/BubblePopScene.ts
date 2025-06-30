@@ -85,8 +85,18 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private createBubbleBucket() {
+        // In infinite mode, create enough bubbles to fill the screen plus extras
+        let bubblesToCreate = this.TOTAL_BUBBLES;
+        if (this.TOTAL_BUBBLES === -1) {
+            // Calculate screen capacity and create 2x that amount for infinite mode
+            const maxBubblesHoriz = Math.round(this.gameWidth / this.bubbleSize);
+            const maxBubblesVert = Math.round(this.gameHeight / this.bubbleSize);
+            const screenCapacity = maxBubblesHoriz * maxBubblesVert;
+            bubblesToCreate = screenCapacity * 2; // Keep 2x screen capacity in reserve
+        }
+
         // Create all bubbles and store them in the bucket (initially hidden)
-        for (let i = 0; i < this.TOTAL_BUBBLES; i++) {
+        for (let i = 0; i < bubblesToCreate; i++) {
             const bubble = this.createBubble(0, 0);
             bubble.setVisible(false);
             bubble.setAlpha(1); // Ensure alpha is set to 1 for reuse
@@ -137,7 +147,21 @@ export default class BubblePopScene extends Phaser.Scene {
 
         // Fill empty spots with bubbles from the bucket
         const spotsToFill = maxVisibleBubbles - bubblesStillVisible.length;
-        const bubblesWeCanAdd = Math.min(spotsToFill, this.bubbleBucket.length);
+        let bubblesWeCanAdd = Math.min(spotsToFill, this.bubbleBucket.length);
+
+        // In infinite mode, if we're running low on bucket bubbles, create more
+        if (this.TOTAL_BUBBLES === -1 && this.bubbleBucket.length < spotsToFill) {
+            const additionalBubblesNeeded = spotsToFill - this.bubbleBucket.length;
+            for (let i = 0; i < additionalBubblesNeeded; i++) {
+                const bubble = this.createBubble(0, 0);
+                bubble.setVisible(false);
+                bubble.setAlpha(1);
+                bubble.x = -1000;
+                bubble.y = -1000;
+                this.bubbleBucket.push(bubble);
+            }
+            bubblesWeCanAdd = spotsToFill; // Now we can fill all spots
+        }
 
         let bubblesAdded = 0;
         for (let row = 0; row < maxBubblesVert && bubblesAdded < bubblesWeCanAdd; row++) {
@@ -204,8 +228,8 @@ export default class BubblePopScene extends Phaser.Scene {
                 let bubble: Sprite;
                 if (this.bubbleBucket.length > 0) {
                     bubble = this.bubbleBucket.shift()!; // Take from bucket
-                } else if (this.TOTAL_BUBBLES === -1 && this.isPositionEmpty(x, y)) {
-                    // Create a new bubble for infinite mode
+                } else if (this.TOTAL_BUBBLES === -1) {
+                    // Create a new bubble for infinite mode when bucket is empty
                     bubble = this.createBubble(x, y);
                 } else {
                     return; // No bubble available and not infinite mode
