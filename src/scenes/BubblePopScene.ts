@@ -73,7 +73,6 @@ export default class BubblePopScene extends Phaser.Scene {
         this.loadSettings(); // Load saved settings before creating the scene
         this.cleanupBubbles(); // Clean up any existing bubbles from previous runs
         this.addBackButton();
-        this.addDragToggle();
         this.addProgressCounter();
         this.computeSizing();
         this.createBubbleGrid();
@@ -386,7 +385,6 @@ export default class BubblePopScene extends Phaser.Scene {
 
     private backButton!: Text;
     private settingsButton!: Text;
-    private dragToggle!: Text;
     private progressText!: Text;
     private progressHint!: Text;
     private settingsPanel!: Phaser.GameObjects.Container;
@@ -693,34 +691,6 @@ export default class BubblePopScene extends Phaser.Scene {
         }
     }
 
-    private addDragToggle() {
-        this.dragToggle = this.add.text(10, 140, `Drag: ${this.dragToKillEnabled ? 'ON' : 'OFF'}`, { fontSize: '24px', color: 'white' })
-            .setOrigin(0)
-            .setPadding(15, 5, 15, 5)
-            .setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#444' })
-            .setInteractive({ useHandCursor: true })
-            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
-                event.stopPropagation();
-                this.dragToKillEnabled = !this.dragToKillEnabled;
-                this.dragToggle.setText(`Drag: ${this.dragToKillEnabled ? 'ON' : 'OFF'}`);
-                this.dragToggle.setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#444' });
-
-                // Save the new setting
-                this.saveSettings();
-
-                // Update all existing bubbles to use the new interaction mode
-                // Use a small delay to ensure the mode change is complete
-                this.time.delayedCall(10, () => {
-                    this.bubbles.forEach(bubble => {
-                        this.resetBubbleInteractivity(bubble);
-                    });
-                });
-            })
-            .setDepth(10)
-            .on('pointerover', () => this.dragToggle.setStyle({ fill: '#f39c12' }))
-            .on('pointerout', () => this.dragToggle.setStyle({ fill: '#FFF' }));
-    }
-
     private setupDragToKill() {
         let isDragging = false;
         let lastDraggedBubble: Sprite | null = null;
@@ -808,15 +778,47 @@ export default class BubblePopScene extends Phaser.Scene {
         .on('pointerover', () => closeButton.setStyle({ fill: '#f39c12', backgroundColor: '#888' }))
         .on('pointerout', () => closeButton.setStyle({ fill: '#FFF', backgroundColor: '#666' }));
 
-        // Add placeholder text for now
-        const placeholder = this.add.text(0, 0, 'Settings panel content\ncoming soon...', {
-            fontSize: '18px',
+        // Drag Mode Toggle
+        const dragLabel = this.add.text(-150, -50, 'Drag Mode:', {
+            fontSize: '20px',
+            color: 'white'
+        }).setOrigin(0, 0.5);
+
+        const dragToggleButton = this.add.text(50, -50, this.dragToKillEnabled ? 'ON' : 'OFF', {
+            fontSize: '20px',
+            color: 'white'
+        })
+        .setOrigin(0.5)
+        .setPadding(20, 8, 20, 8)
+        .setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#666' })
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+            event.stopPropagation();
+            this.dragToKillEnabled = !this.dragToKillEnabled;
+            dragToggleButton.setText(this.dragToKillEnabled ? 'ON' : 'OFF');
+            dragToggleButton.setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#666' });
+
+            // Save the new setting
+            this.saveSettings();
+
+            // Update all existing bubbles to use the new interaction mode
+            this.time.delayedCall(10, () => {
+                this.bubbles.forEach(bubble => {
+                    this.resetBubbleInteractivity(bubble);
+                });
+            });
+        })
+        .on('pointerover', () => dragToggleButton.setStyle({ fill: '#f39c12' }))
+        .on('pointerout', () => dragToggleButton.setStyle({ fill: '#FFF' }));
+
+        const dragDescription = this.add.text(0, -10, 'When enabled, drag to pop bubbles\ninstead of clicking', {
+            fontSize: '14px',
             color: '#ccc',
             align: 'center'
         }).setOrigin(0.5);
 
         // Add all elements to the container
-        this.settingsPanel.add([panelBg, title, closeButton, placeholder]);
+        this.settingsPanel.add([panelBg, title, closeButton, dragLabel, dragToggleButton, dragDescription]);
 
         // Animate panel in
         this.settingsPanel.setAlpha(0);
