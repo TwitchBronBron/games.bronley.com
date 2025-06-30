@@ -12,9 +12,14 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     /**
-     * The percent of the entire window each bubble should be
+     * The size of each bubble in pixels
      */
     private bubbleSize = 200;
+    
+    /**
+     * Total number of bubbles in the game - when this bucket is empty, the player wins
+     */
+    private readonly TOTAL_BUBBLES = 100;
 
     preload() {
         this.load.image('bubble', 'assets/images/bubble.png');
@@ -30,33 +35,92 @@ export default class BubblePopScene extends Phaser.Scene {
             this.victorySound = this.sound.add('victory');
         });
 
-    }
-
-    create() {
+    }    create() {
         console.log('create bubble scene');
         this.cleanupBubbles(); // Clean up any existing bubbles from previous runs
         this.addBackButton();
+        this.addProgressCounter();
         this.computeSizing();
+        this.createBubbleGrid();
+        
+        // Listen for resize events
+        this.scale.on('resize', this.handleResize, this);
+    }
 
-        const bubbles = [];
-
-        const maxBubblesHoriz = Math.round(this.gameWidth / this.bubbleSize) - 1;
-        const maxBubblesVert = Math.round(this.gameHeight / this.bubbleSize) - 1;
-
-        for (let i = 0; i < maxBubblesHoriz * maxBubblesVert; i++) {
+    private createBubbleGrid() {
+        // Create the bucket of bubbles
+        this.createBubbleBucket();
+        
+        // Fill the initial grid
+        this.fillBubbleGrid();
+    }
+    
+    private createBubbleBucket() {
+        // Create all bubbles and store them in the bucket (initially hidden)
+        for (let i = 0; i < this.TOTAL_BUBBLES; i++) {
             const bubble = this.createBubble(0, 0);
-            bubbles.push(bubble);
+            bubble.setVisible(false);
+            bubble.x = -1000; // Move offscreen
+            bubble.y = -1000;
+            this.bubbleBucket.push(bubble);
         }
-
-        Phaser.Actions.GridAlign(bubbles, {
-            width: maxBubblesHoriz,
-            height: maxBubblesVert,
-            position: Phaser.Display.Align.CENTER,
-            cellWidth: Math.floor(this.gameWidth / maxBubblesHoriz),
-            cellHeight: Math.floor(this.gameHeight / maxBubblesVert),
-            x: this.bubbleSize / 2,
-            y: this.bubbleSize / 2
+    }
+    
+    private fillBubbleGrid() {
+        const maxBubblesHoriz = Math.round(this.gameWidth / this.bubbleSize);
+        const maxBubblesVert = Math.round(this.gameHeight / this.bubbleSize);
+        const maxVisibleBubbles = maxBubblesHoriz * maxBubblesVert;
+        
+        // First, hide all currently visible bubbles and return them to bucket
+        this.bubbles.forEach(bubble => {
+            bubble.setVisible(false);
+            bubble.x = -1000;
+            bubble.y = -1000;
         });
+        this.bubbles.clear();
+        
+        // Take bubbles from bucket to fill visible spots
+        const bubblesToShow = Math.min(maxVisibleBubbles, this.bubbleBucket.length);
+        
+        for (let i = 0; i < bubblesToShow; i++) {
+            const bubble = this.bubbleBucket.shift()!; // Take from bucket
+            const row = Math.floor(i / maxBubblesHoriz);
+            const col = i % maxBubblesHoriz;
+            
+            bubble.x = col * this.bubbleSize + this.bubbleSize / 2;
+            bubble.y = row * this.bubbleSize + this.bubbleSize / 2;
+            bubble.setVisible(true);
+            
+            // Reset interactive state
+            this.resetBubbleInteractivity(bubble);
+            
+            // Add to active bubbles set
+            this.bubbles.add(bubble);
+        }
+    }
+
+    private handleResize() {
+        // Refill the grid using the bucket system
+        this.fillBubbleGrid();
+    }
+
+    private fillSpecificSpot(x: number, y: number) {
+        // Try to get a bubble from the bucket
+        if (this.bubbleBucket.length > 0) {
+            const bubble = this.bubbleBucket.shift()!; // Take from bucket
+
+            // Position the bubble
+            bubble.x = x;
+            bubble.y = y;
+            bubble.setVisible(true);
+
+            // Reset interactive state and animations
+            this.resetBubbleInteractivity(bubble);
+            
+            // Add to active bubbles set
+            this.bubbles.add(bubble);
+        }
+        // If bucket is empty, no replacement bubble (this is fine - we're near the end)
     }
 
     finalize() {
@@ -73,6 +137,17 @@ export default class BubblePopScene extends Phaser.Scene {
             }
         });
         this.bubbles.clear();
+        
+        // Clean up bucket bubbles
+        this.bubbleBucket.forEach(bubble => {
+            this.tweens.killTweensOf(bubble);
+            if ((bubble as any).floatTween) {
+                (bubble as any).floatTween.destroy();
+            }
+            bubble.destroy();
+        });
+        this.bubbleBucket = [];
+        this.bubblesPopped = 0;
 
         // Clean up all particle managers
         this.particleManagers.forEach(manager => {
@@ -82,6 +157,7 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private backButton!: Text;
+    private progressText!: Text;
 
     private popSound!: Phaser.Sound.BaseSound;
     private victorySound!: Phaser.Sound.BaseSound;
@@ -99,6 +175,16 @@ export default class BubblePopScene extends Phaser.Scene {
 
     private bubbles = new Set<Sprite>();
     private particleManagers = new Set<Phaser.GameObjects.Particles.ParticleEmitter>();
+    
+    /**
+     * The bucket of available bubbles - these are created once and reused
+     */
+    private bubbleBucket: Sprite[] = [];
+    
+    /**
+     * Count of bubbles that have been popped (removed from the bucket permanently)
+     */
+    private bubblesPopped = 0;
 
     private popBubble(bubble: Sprite) {
         // Prevent multiple pops on the same bubble
@@ -108,6 +194,10 @@ export default class BubblePopScene extends Phaser.Scene {
 
         // Stop any existing tweens on this bubble to prevent conflicts
         this.tweens.killTweensOf(bubble);
+
+        // Store the position before destroying the bubble
+        const bubbleX = bubble.x;
+        const bubbleY = bubble.y;
 
         const v = 50;
         // Use simpler particle approach similar to original
@@ -125,8 +215,10 @@ export default class BubblePopScene extends Phaser.Scene {
 
         this.popSound?.play();
 
-        // Remove bubble from set immediately to prevent duplicate pops
+        // Remove bubble from active set and increment popped count
         this.bubbles.delete(bubble);
+        this.bubblesPopped++;
+        this.updateProgressCounter();
 
         this.tweens.add({
             targets: bubble,
@@ -146,7 +238,11 @@ export default class BubblePopScene extends Phaser.Scene {
                     particleManager.destroy();
                 });
 
-                if (this.bubbles.size === 0) {
+                // Try to fill this spot with a bubble from the bucket
+                this.fillSpecificSpot(bubbleX, bubbleY);
+
+                // Check if we've depleted the entire bucket (win condition)
+                if (this.bubblesPopped >= this.TOTAL_BUBBLES) {
                     this.finalize();
                 }
             }
@@ -229,6 +325,57 @@ export default class BubblePopScene extends Phaser.Scene {
             .on('pointerover', () => playAgain.setStyle({ fill: '#f39c12' }))
             .on('pointerout', () => playAgain.setStyle({ fill: '#FFF' }))
         //TODO show an in-game button or something
+    }
+
+    private addProgressCounter() {
+        this.progressText = this.add.text(this.scale.gameSize.width - 10, 10, `Bubbles: ${this.TOTAL_BUBBLES}`, { 
+            fontSize: '32px', 
+            color: 'white' 
+        })
+            .setOrigin(1, 0)
+            .setPadding(20, 10, 20, 10)
+            .setStyle({ backgroundColor: '#333' })
+            .setDepth(10);
+    }
+    
+    private updateProgressCounter() {
+        const bubblesLeft = this.TOTAL_BUBBLES - this.bubblesPopped;
+        this.progressText.setText(`Bubbles: ${bubblesLeft}`);
+    }
+
+    private resetBubbleInteractivity(bubble: Sprite) {
+        // Stop any existing tweens on this bubble
+        this.tweens.killTweensOf(bubble);
+        if ((bubble as any).floatTween) {
+            (bubble as any).floatTween.destroy();
+        }
+
+        // Reset interactive state - remove all existing listeners and add new one
+        bubble.removeAllListeners();
+        bubble.setInteractive({
+            cursor: 'pointer'
+        });
+
+        // Add fresh click handler using once() to prevent multiple clicks
+        bubble.once('pointerdown', () => {
+            this.popBubble(bubble);
+        });
+
+        // Create new floating animation
+        const floatTween = this.tweens.add({
+            targets: bubble,
+            props: {
+                x: { value: `+=${randomInt(1, 10)}`, duration: randomInt(1000, 1500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
+                y: { value: `+=${randomInt(1, 10)}`, duration: randomInt(2000, 2500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
+                scaleX: { value: `+=.0${randomInt(1, 3)}`, duration: randomInt(2000, 3000), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
+                scaleY: { value: `+=.0${randomInt(1, 3)}`, duration: randomInt(1000, 2000), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' }
+            },
+            repeat: -1,
+            yoyo: true
+        });
+
+        // Store the new tween reference
+        (bubble as any).floatTween = floatTween;
     }
 
 }
