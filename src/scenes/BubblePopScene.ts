@@ -15,11 +15,11 @@ export default class BubblePopScene extends Phaser.Scene {
      * The size of each bubble in pixels
      */
     private bubbleSize = 200;
-    
+
     /**
      * Total number of bubbles in the game - when this bucket is empty, the player wins
      */
-    private readonly TOTAL_BUBBLES = 100;
+    private readonly TOTAL_BUBBLES = 30;
 
     preload() {
         this.load.image('bubble', 'assets/images/bubble.png');
@@ -42,7 +42,7 @@ export default class BubblePopScene extends Phaser.Scene {
         this.addProgressCounter();
         this.computeSizing();
         this.createBubbleGrid();
-        
+
         // Listen for resize events
         this.scale.on('resize', this.handleResize, this);
     }
@@ -50,11 +50,11 @@ export default class BubblePopScene extends Phaser.Scene {
     private createBubbleGrid() {
         // Create the bucket of bubbles
         this.createBubbleBucket();
-        
+
         // Fill the initial grid
         this.fillBubbleGrid();
     }
-    
+
     private createBubbleBucket() {
         // Create all bubbles and store them in the bucket (initially hidden)
         for (let i = 0; i < this.TOTAL_BUBBLES; i++) {
@@ -65,37 +65,70 @@ export default class BubblePopScene extends Phaser.Scene {
             this.bubbleBucket.push(bubble);
         }
     }
-    
+
     private fillBubbleGrid() {
         const maxBubblesHoriz = Math.round(this.gameWidth / this.bubbleSize);
         const maxBubblesVert = Math.round(this.gameHeight / this.bubbleSize);
         const maxVisibleBubbles = maxBubblesHoriz * maxBubblesVert;
-        
-        // First, hide all currently visible bubbles and return them to bucket
+
+        // Check which bubbles are still within the visible area
+        const bubblesStillVisible: Sprite[] = [];
+        const bubblesToHide: Sprite[] = [];
+
         this.bubbles.forEach(bubble => {
+            const col = Math.round((bubble.x - this.bubbleSize / 2) / this.bubbleSize);
+            const row = Math.round((bubble.y - this.bubbleSize / 2) / this.bubbleSize);
+
+            // Check if this bubble position is still within the new grid bounds
+            if (col >= 0 && col < maxBubblesHoriz && row >= 0 && row < maxBubblesVert) {
+                bubblesStillVisible.push(bubble);
+            } else {
+                bubblesToHide.push(bubble);
+            }
+        });
+
+        // Hide bubbles that are now offscreen and return them to bucket
+        bubblesToHide.forEach(bubble => {
             bubble.setVisible(false);
             bubble.x = -1000;
             bubble.y = -1000;
+            this.bubbleBucket.push(bubble);
+            this.bubbles.delete(bubble);
         });
-        this.bubbles.clear();
-        
-        // Take bubbles from bucket to fill visible spots
-        const bubblesToShow = Math.min(maxVisibleBubbles, this.bubbleBucket.length);
-        
-        for (let i = 0; i < bubblesToShow; i++) {
-            const bubble = this.bubbleBucket.shift()!; // Take from bucket
-            const row = Math.floor(i / maxBubblesHoriz);
-            const col = i % maxBubblesHoriz;
-            
-            bubble.x = col * this.bubbleSize + this.bubbleSize / 2;
-            bubble.y = row * this.bubbleSize + this.bubbleSize / 2;
-            bubble.setVisible(true);
-            
-            // Reset interactive state
-            this.resetBubbleInteractivity(bubble);
-            
-            // Add to active bubbles set
-            this.bubbles.add(bubble);
+
+        // Create a map of occupied positions
+        const occupiedPositions = new Set<string>();
+        bubblesStillVisible.forEach(bubble => {
+            const col = Math.round((bubble.x - this.bubbleSize / 2) / this.bubbleSize);
+            const row = Math.round((bubble.y - this.bubbleSize / 2) / this.bubbleSize);
+            occupiedPositions.add(`${row},${col}`);
+        });
+
+        // Fill empty spots with bubbles from the bucket
+        const spotsToFill = maxVisibleBubbles - bubblesStillVisible.length;
+        const bubblesWeCanAdd = Math.min(spotsToFill, this.bubbleBucket.length);
+
+        let bubblesAdded = 0;
+        for (let row = 0; row < maxBubblesVert && bubblesAdded < bubblesWeCanAdd; row++) {
+            for (let col = 0; col < maxBubblesHoriz && bubblesAdded < bubblesWeCanAdd; col++) {
+                const positionKey = `${row},${col}`;
+
+                // If this position is empty, fill it
+                if (!occupiedPositions.has(positionKey)) {
+                    const bubble = this.bubbleBucket.shift()!; // Take from bucket
+
+                    bubble.x = col * this.bubbleSize + this.bubbleSize / 2;
+                    bubble.y = row * this.bubbleSize + this.bubbleSize / 2;
+                    bubble.setVisible(true);
+
+                    // Reset interactive state
+                    this.resetBubbleInteractivity(bubble);
+
+                    // Add to active bubbles set
+                    this.bubbles.add(bubble);
+                    bubblesAdded++;
+                }
+            }
         }
     }
 
@@ -116,7 +149,7 @@ export default class BubblePopScene extends Phaser.Scene {
 
             // Reset interactive state and animations
             this.resetBubbleInteractivity(bubble);
-            
+
             // Add to active bubbles set
             this.bubbles.add(bubble);
         }
@@ -137,7 +170,7 @@ export default class BubblePopScene extends Phaser.Scene {
             }
         });
         this.bubbles.clear();
-        
+
         // Clean up bucket bubbles
         this.bubbleBucket.forEach(bubble => {
             this.tweens.killTweensOf(bubble);
@@ -175,12 +208,12 @@ export default class BubblePopScene extends Phaser.Scene {
 
     private bubbles = new Set<Sprite>();
     private particleManagers = new Set<Phaser.GameObjects.Particles.ParticleEmitter>();
-    
+
     /**
      * The bucket of available bubbles - these are created once and reused
      */
     private bubbleBucket: Sprite[] = [];
-    
+
     /**
      * Count of bubbles that have been popped (removed from the bucket permanently)
      */
@@ -328,16 +361,16 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private addProgressCounter() {
-        this.progressText = this.add.text(this.scale.gameSize.width - 10, 10, `Bubbles: ${this.TOTAL_BUBBLES}`, { 
-            fontSize: '32px', 
-            color: 'white' 
+        this.progressText = this.add.text(this.scale.gameSize.width - 10, 10, `Bubbles: ${this.TOTAL_BUBBLES}`, {
+            fontSize: '32px',
+            color: 'white'
         })
             .setOrigin(1, 0)
             .setPadding(20, 10, 20, 10)
             .setStyle({ backgroundColor: '#333' })
             .setDepth(10);
     }
-    
+
     private updateProgressCounter() {
         const bubblesLeft = this.TOTAL_BUBBLES - this.bubblesPopped;
         this.progressText.setText(`Bubbles: ${bubblesLeft}`);

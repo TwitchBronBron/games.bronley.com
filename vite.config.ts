@@ -2,6 +2,11 @@ import { defineConfig } from 'vite';
 import replace from '@rollup/plugin-replace';
 
 export default defineConfig({
+  server: {
+    host: '0.0.0.0', // Allow external connections
+    port: 5173, // Optional: specify default port
+    allowedHosts: true // Allow all hostnames
+  },
   build: {
     chunkSizeWarningLimit: 1600, // Increase limit to accommodate Phaser library
     rollupOptions: {
