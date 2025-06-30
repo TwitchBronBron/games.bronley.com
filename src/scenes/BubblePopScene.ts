@@ -236,9 +236,72 @@ export default class BubblePopScene extends Phaser.Scene {
     private handleResize() {
         // Reposition UI elements
         this.repositionProgressCounter();
+        this.repositionButtons();
 
         // Refill the grid using the bucket system
         this.fillBubbleGrid();
+    }
+
+    /**
+     * Calculate a responsive scale factor based on screen size
+     * Returns a multiplier for font sizes and UI elements
+     */
+    private getUIScaleFactor(): number {
+        // Base scale on the smaller dimension to ensure UI fits on both portrait and landscape
+        const minDimension = Math.min(this.gameWidth, this.gameHeight);
+
+        // Use 600px as our baseline - scale proportionally from there
+        // This ensures buttons are readable on mobile while not being huge on desktop
+        const baseSize = 600;
+        const scaleFactor = Math.max(0.7, Math.min(2.0, minDimension / baseSize));
+
+        return scaleFactor;
+    }
+
+    /**
+     * Reposition and rescale buttons based on current screen size
+     */
+    private repositionButtons() {
+        const scaleFactor = this.getUIScaleFactor();
+
+        if (this.backButton) {
+            // Scale the back button
+            const backFontSize = Math.round(48 * scaleFactor);
+            const backPaddingH = Math.round(20 * scaleFactor);
+            const backPaddingV = Math.round(10 * scaleFactor);
+
+            this.backButton.setStyle({ fontSize: `${backFontSize}px` });
+            this.backButton.setPadding(backPaddingH, 0, backPaddingH, backPaddingV);
+        }
+
+        if (this.settingsButton) {
+            // Scale the settings button
+            const settingsFontSize = Math.round(36 * scaleFactor);
+            const settingsPadding = Math.round(15 * scaleFactor);
+            const settingsPaddingV = Math.round(10 * scaleFactor);
+
+            // Reposition it relative to the back button
+            if (this.backButton) {
+                const backButtonBounds = this.backButton.getBounds();
+                const settingsX = backButtonBounds.right + (Math.round(20 * scaleFactor) * 0.5);
+                const settingsY = backButtonBounds.centerY;
+
+                this.settingsButton.setPosition(settingsX, settingsY);
+            }
+
+            this.settingsButton.setStyle({ fontSize: `${settingsFontSize}px` });
+            this.settingsButton.setPadding(settingsPadding, settingsPaddingV, settingsPadding, settingsPaddingV);
+        }
+
+        if (this.progressText) {
+            // Scale the progress counter
+            const progressFontSize = Math.round(32 * scaleFactor);
+            const progressPadding = Math.round(20 * scaleFactor);
+            const progressPaddingV = Math.round(10 * scaleFactor);
+
+            this.progressText.setStyle({ fontSize: `${progressFontSize}px` });
+            this.progressText.setPadding(progressPadding, progressPaddingV, progressPadding, progressPaddingV);
+        }
     }
 
     private fillSpecificSpot(x: number, y: number) {
@@ -514,9 +577,18 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private addBackButton() {
-        this.backButton = this.add.text(10, 10, '←', { fontSize: '48px', color: 'white' })
+        // Use the same scaling system as repositionButtons
+        const scaleFactor = this.getUIScaleFactor();
+        const backButtonFontSize = Math.round(48 * scaleFactor);
+        const backPaddingH = Math.round(20 * scaleFactor);
+        const backPaddingV = Math.round(10 * scaleFactor);
+
+        this.backButton = this.add.text(10, 10, '←', {
+            fontSize: `${backButtonFontSize}px`,
+            color: 'white'
+        })
             .setOrigin(0)
-            .setPadding(20, 0, 20, 10)
+            .setPadding(backPaddingH, 0, backPaddingH, backPaddingV)
             .setStyle({ backgroundColor: '#111' })
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
@@ -528,10 +600,23 @@ export default class BubblePopScene extends Phaser.Scene {
             .on('pointerover', () => this.backButton.setStyle({ fill: '#f39c12' }))
             .on('pointerout', () => this.backButton.setStyle({ fill: '#FFF' }))
 
-        // Add settings button under the back button
-        this.settingsButton = this.add.text(10, 80, '⚙', { fontSize: '36px', color: 'white' })
-            .setOrigin(0)
-            .setPadding(15, 5, 15, 5)
+        // Calculate settings button dimensions using the same scaling system
+        const settingsButtonFontSize = Math.round(36 * scaleFactor);
+        const settingsPadding = Math.round(15 * scaleFactor);
+        const settingsPaddingV = Math.round(10 * scaleFactor);
+
+        // Calculate position for settings button to be next to back button
+        const backButtonBounds = this.backButton.getBounds();
+        const settingsButtonX = backButtonBounds.right + (backPaddingH * 0.5);
+        const settingsButtonY = backButtonBounds.centerY;
+
+        // Add settings button next to the back button
+        this.settingsButton = this.add.text(settingsButtonX, settingsButtonY, '⚙', {
+            fontSize: `${settingsButtonFontSize}px`,
+            color: 'white'
+        })
+            .setOrigin(0, 0.5) // Center vertically, align left horizontally
+            .setPadding(settingsPadding, settingsPaddingV, settingsPadding, settingsPaddingV)
             .setStyle({ backgroundColor: '#333' })
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
@@ -544,9 +629,17 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private addPlayAgainButton() {
-        var playAgain = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Play Again', { fontSize: '48px', color: 'white' })
+        // Use the same scaling system as other buttons
+        const scaleFactor = this.getUIScaleFactor();
+        const fontSize = Math.round(48 * scaleFactor);
+        const padding = Math.round(50 * scaleFactor);
+
+        var playAgain = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, 'Play Again', {
+            fontSize: `${fontSize}px`,
+            color: 'white'
+        })
             .setOrigin(.5)
-            .setPadding(50)
+            .setPadding(padding)
             .setResolution(10)
             .setStyle({ backgroundColor: 'green' })
             .setInteractive({ useHandCursor: true })
@@ -562,13 +655,19 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private addProgressCounter() {
+        // Use the same scaling system as other buttons
+        const scaleFactor = this.getUIScaleFactor();
+        const fontSize = Math.round(32 * scaleFactor);
+        const padding = Math.round(20 * scaleFactor);
+        const paddingV = Math.round(10 * scaleFactor);
+
         const displayText = this.TOTAL_BUBBLES === -1 ? 'Bubbles: ∞' : `Bubbles: ${this.TOTAL_BUBBLES}`;
         this.progressText = this.add.text(this.scale.gameSize.width - 10, 10, displayText, {
-            fontSize: '32px',
+            fontSize: `${fontSize}px`,
             color: 'white'
         })
             .setOrigin(1, 0)
-            .setPadding(20, 10, 20, 10)
+            .setPadding(padding, paddingV, padding, paddingV)
             .setStyle({ backgroundColor: '#333' })
             .setDepth(10);
     }
