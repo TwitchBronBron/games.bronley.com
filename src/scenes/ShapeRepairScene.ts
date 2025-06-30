@@ -52,6 +52,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
                 this.pairsRemaining++;
             }
         }
+        console.log('Total pairs created:', this.pairsRemaining);
 
         this.input.on('drag', function (pointer: Pointer, gameObject: Sprite, dragX: number, dragY: number) {
             gameObject.x = dragX;
@@ -74,12 +75,18 @@ export default class ShapeRepairScene extends Phaser.Scene {
             const partner = this.shapePairMap.get(sprite);
             const partnerBounds = partner?.getBounds();
 
-            //is this shape above its corresponding pair? 
+            console.log('Drag ended. Checking collision between sprite and partner');
+            console.log('Sprite bounds:', spriteBounds);
+            console.log('Partner bounds:', partnerBounds);
+
+            //is this shape above its corresponding pair?
             if (Phaser.Geom.Intersects.RectangleToRectangle(spriteBounds, partnerBounds!)) {
+                console.log('Collision detected! Finalizing pair');
                 this.finalizePair(sprite);
 
                 //the shape is NOT above its corresponding pair. reset its position
             } else {
+                console.log('No collision detected. Resetting position');
                 const initialPosition = dragstartPositions.get(sprite);
                 if (initialPosition) {
                     this.movements.push({
@@ -120,8 +127,6 @@ export default class ShapeRepairScene extends Phaser.Scene {
             .setStyle({ backgroundColor: '#111' })
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
-                this.create();
-                this.scene.restart();
                 this.scene.switch(SceneName.TitleScene);
             })
             .setDepth(10)
@@ -146,22 +151,39 @@ export default class ShapeRepairScene extends Phaser.Scene {
     }
 
     private finishRound() {
+        console.log('finishRound() called - game completed!');
         this.victorySound?.play();
         this.addPlayAgainButton();
     }
 
 
     public reset() {
+        console.log('Resetting game state');
         this.quadrants = [];
         this.pairsRemaining = 0;
+
+        // Clear shape pairs
         for (const [obj] of this.shapePairMap) {
-            obj.destroy();
+            if (obj && obj.active) {
+                obj.destroy();
+            }
         }
-        this.shapePairMap = new Map();
+        this.shapePairMap.clear();
+
+        // Clear input listeners
         this.input.removeAllListeners();
-        for (const child of this.children.list) {
-            child.destroy();
+
+        // Clear movements array
+        this.movements = [];
+
+        // Destroy all children except physics world
+        const children = [...this.children.list];
+        for (const child of children) {
+            if (child && (child as any).destroy) {
+                (child as any).destroy();
+            }
         }
+
         this.backButton?.destroy();
     }
 
@@ -176,21 +198,36 @@ export default class ShapeRepairScene extends Phaser.Scene {
         // sprite.alpha = .1;
         // partner.alpha = .1;
         this.pairsRemaining--;
-
-        const timeline = this.tweens.createTimeline();
+        console.log('Pair completed! Remaining pairs:', this.pairsRemaining);
 
         this.whooshSound?.play();
-        timeline
-            .add({ targets: [sprite, partner], duration: 50, yoyo: true, scaleX: 1.2, scaleY: 1.2 })
-            .add({ targets: [sprite, partner], duration: 50, scaleX: .001, scaleY: .001 })
-            .once('complete', () => {
-                sprite.destroy();
-                partner.destroy();
-                if (this.pairsRemaining <= 0) {
-                    this.finishRound();
-                }
-            })
-            .play();
+
+        // Create scale up tween
+        this.tweens.add({
+            targets: [sprite, partner],
+            duration: 50,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            yoyo: true,
+            onComplete: () => {
+                // Create scale down tween
+                this.tweens.add({
+                    targets: [sprite, partner],
+                    duration: 50,
+                    scaleX: 0.001,
+                    scaleY: 0.001,
+                    onComplete: () => {
+                        sprite.destroy();
+                        partner.destroy();
+                        console.log('Tween completed. Checking if game is finished. Pairs remaining:', this.pairsRemaining);
+                        if (this.pairsRemaining <= 0) {
+                            console.log('Game finished! Calling finishRound()');
+                            this.finishRound();
+                        }
+                    }
+                });
+            }
+        });
     }
 
     private movements: Array<{ sprite: Sprite; destination: Point; }> = [];
@@ -280,6 +317,8 @@ export default class ShapeRepairScene extends Phaser.Scene {
         //link the objects to each other for user in collision detection later
         this.shapePairMap.set(bigger, smaller);
         this.shapePairMap.set(smaller, bigger);
+
+        console.log('Created shape pair. Total shape pairs in map:', this.shapePairMap.size / 2);
     }
 
 
@@ -287,7 +326,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
      * Create a partial circle sprite
      */
     private createCirclePart(color: number, radius: number, startDegree: number, endDegree: number) {
-        var graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        var graphics = this.add.graphics();
         graphics.fillStyle(color, 1);
         //draw the circle
         graphics.lineStyle(3, 0x000000, 1);
