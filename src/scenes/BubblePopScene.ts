@@ -26,6 +26,11 @@ export default class BubblePopScene extends Phaser.Scene {
      */
     private readonly REFILL_DELAY = 1000;
 
+    /**
+     * Whether drag-to-kill mode is enabled
+     */
+    private dragToKillEnabled = false;
+
     preload() {
         this.load.image('bubble', 'assets/images/bubble.png');
         this.load.image('spark', 'assets/images/particle.png');
@@ -44,12 +49,16 @@ export default class BubblePopScene extends Phaser.Scene {
         console.log('create bubble scene');
         this.cleanupBubbles(); // Clean up any existing bubbles from previous runs
         this.addBackButton();
+        this.addDragToggle();
         this.addProgressCounter();
         this.computeSizing();
         this.createBubbleGrid();
 
         // Listen for resize events
         this.scale.on('resize', this.handleResize, this);
+
+        // Set up drag-to-kill input handling
+        this.setupDragToKill();
     }
 
     private createBubbleGrid() {
@@ -251,6 +260,7 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private backButton!: Text;
+    private dragToggle!: Text;
     private progressText!: Text;
 
     private popSound!: Phaser.Sound.BaseSound;
@@ -362,10 +372,7 @@ export default class BubblePopScene extends Phaser.Scene {
 
         // Note: Don't add to this.bubbles set here - only add when bubble becomes active
 
-        // Use once to prevent multiple clicks
-        bubble.once('pointerdown', () => {
-            this.popBubble(bubble);
-        });
+        // Click handler will be added in resetBubbleInteractivity based on mode
 
         return bubble;
     }
@@ -447,10 +454,12 @@ export default class BubblePopScene extends Phaser.Scene {
             cursor: 'pointer'
         });
 
-        // Add fresh click handler using once() to prevent multiple clicks
-        bubble.once('pointerdown', () => {
-            this.popBubble(bubble);
-        });
+        // Add fresh click handler using once() to prevent multiple clicks (only for tap mode)
+        if (!this.dragToKillEnabled) {
+            bubble.once('pointerdown', () => {
+                this.popBubble(bubble);
+            });
+        }
 
         // Create new floating animation
         const floatTween = this.tweens.add({
@@ -473,6 +482,65 @@ export default class BubblePopScene extends Phaser.Scene {
         if (this.progressText) {
             this.progressText.setPosition(this.scale.gameSize.width - 10, 10);
         }
+    }
+
+    private addDragToggle() {
+        this.dragToggle = this.add.text(10, 70, 'Drag: OFF', { fontSize: '24px', color: 'white' })
+            .setOrigin(0)
+            .setPadding(15, 5, 15, 5)
+            .setStyle({ backgroundColor: '#444' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
+                this.dragToKillEnabled = !this.dragToKillEnabled;
+                this.dragToggle.setText(`Drag: ${this.dragToKillEnabled ? 'ON' : 'OFF'}`);
+                this.dragToggle.setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#444' });
+
+                // Update all existing bubbles to use the new interaction mode
+                this.bubbles.forEach(bubble => {
+                    this.resetBubbleInteractivity(bubble);
+                });
+            })
+            .setDepth(10)
+            .on('pointerover', () => this.dragToggle.setStyle({ fill: '#f39c12' }))
+            .on('pointerout', () => this.dragToggle.setStyle({ fill: '#FFF' }));
+    }
+
+    private setupDragToKill() {
+        let isDragging = false;
+        let lastDraggedBubble: Sprite | null = null;
+
+        this.input.on('pointerdown', () => {
+            if (this.dragToKillEnabled) {
+                isDragging = true;
+                lastDraggedBubble = null;
+            }
+        });
+
+        this.input.on('pointerup', () => {
+            isDragging = false;
+            lastDraggedBubble = null;
+        });
+
+        this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+            if (this.dragToKillEnabled && isDragging) {
+                // Check if pointer is over any bubble
+                const bubbleAtPointer = this.getBubbleAtPosition(pointer.x, pointer.y);
+                if (bubbleAtPointer && bubbleAtPointer !== lastDraggedBubble) {
+                    this.popBubble(bubbleAtPointer);
+                    lastDraggedBubble = bubbleAtPointer;
+                }
+            }
+        });
+    }
+
+    private getBubbleAtPosition(x: number, y: number): Sprite | null {
+        for (const bubble of this.bubbles) {
+            const bounds = bubble.getBounds();
+            if (bounds.contains(x, y)) {
+                return bubble;
+            }
+        }
+        return null;
     }
 
 }
