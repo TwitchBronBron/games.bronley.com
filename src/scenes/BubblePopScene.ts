@@ -688,10 +688,17 @@ export default class BubblePopScene extends Phaser.Scene {
         let isDragging = false;
         let lastDraggedBubble: Sprite | null = null;
 
-        this.input.on('pointerdown', () => {
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (this.dragToKillEnabled && !this.settingsPanelVisible) {
                 isDragging = true;
                 lastDraggedBubble = null;
+
+                // Check if the initial touch/click is over a bubble and pop it immediately
+                const bubbleAtPointer = this.getBubbleAtPosition(pointer.x, pointer.y);
+                if (bubbleAtPointer) {
+                    this.popBubble(bubbleAtPointer);
+                    lastDraggedBubble = bubbleAtPointer;
+                }
             }
         });
 
