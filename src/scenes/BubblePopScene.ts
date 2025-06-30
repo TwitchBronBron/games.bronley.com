@@ -19,7 +19,17 @@ export default class BubblePopScene extends Phaser.Scene {
     /**
      * Total number of bubbles in the game - when this bucket is empty, the player wins
      */
-    private readonly TOTAL_BUBBLES = 50;
+    private TOTAL_BUBBLES = 50;
+
+    /**
+     * Available bubble count options (infinite is represented as -1)
+     */
+    private readonly BUBBLE_COUNT_OPTIONS = [20, 50, 200, -1];
+
+    /**
+     * Current index in the bubble count options
+     */
+    private bubbleCountIndex = 1; // Start with 50 bubbles
 
     /**
      * Delay in milliseconds before a popped bubble spot gets refilled
@@ -30,6 +40,11 @@ export default class BubblePopScene extends Phaser.Scene {
      * Whether drag-to-kill mode is enabled
      */
     private dragToKillEnabled = false;
+
+    /**
+     * Flag to prevent bubble creation during reset
+     */
+    private isResetting = false;
 
     preload() {
         this.load.image('bubble', 'assets/images/bubble.png');
@@ -158,6 +173,11 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private fillSpecificSpot(x: number, y: number) {
+        // Don't create bubbles if we're resetting
+        if (this.isResetting) {
+            return;
+        }
+
         // Create a unique key for this position
         const positionKey = `${x},${y}`;
 
@@ -166,18 +186,33 @@ export default class BubblePopScene extends Phaser.Scene {
             return;
         }
 
-        // Only schedule refill if we have bubbles in the bucket
-        if (this.bubbleBucket.length > 0) {
+        // Only schedule refill if we have bubbles in the bucket or we're in infinite mode
+        if (this.bubbleBucket.length > 0 || this.TOTAL_BUBBLES === -1) {
             this.pendingRefills.add(positionKey);
 
             // Schedule the refill after the configured delay
             this.time.delayedCall(this.REFILL_DELAY, () => {
+                // Don't create bubbles if we're resetting
+                if (this.isResetting) {
+                    this.pendingRefills.delete(positionKey);
+                    return;
+                }
+
                 this.pendingRefills.delete(positionKey);
 
-                // Double-check that we still have bubbles and the spot is still empty
-                if (this.bubbleBucket.length > 0 && this.isPositionEmpty(x, y)) {
-                    const bubble = this.bubbleBucket.shift()!; // Take from bucket
+                // In infinite mode, create a new bubble if bucket is empty
+                let bubble: Sprite;
+                if (this.bubbleBucket.length > 0) {
+                    bubble = this.bubbleBucket.shift()!; // Take from bucket
+                } else if (this.TOTAL_BUBBLES === -1 && this.isPositionEmpty(x, y)) {
+                    // Create a new bubble for infinite mode
+                    bubble = this.createBubble(x, y);
+                } else {
+                    return; // No bubble available and not infinite mode
+                }
 
+                // Double-check that the spot is still empty
+                if (this.isPositionEmpty(x, y)) {
                     // FIRST: Stop any existing animations on this bubble
                     this.tweens.killTweensOf(bubble);
                     if ((bubble as any).floatTween) {
@@ -185,7 +220,7 @@ export default class BubblePopScene extends Phaser.Scene {
                         (bubble as any).floatTween = null;
                     }
 
-                    // Position the bubble
+                    // Position the bubble (needed for both reused and new bubbles)
                     bubble.x = x;
                     bubble.y = y;
                     bubble.setVisible(true);
@@ -229,12 +264,21 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private cleanupBubbles() {
-        // Clean up all tweens and bubbles
+        // Clear all pending refill timers first
+        this.pendingRefills.clear();
+
+        // Remove all pending time events to prevent phantom bubbles
+        this.time.removeAllEvents();
+
+        // Clean up all tweens and bubbles in active set
         this.bubbles.forEach(bubble => {
             this.tweens.killTweensOf(bubble);
             if ((bubble as any).floatTween) {
                 (bubble as any).floatTween.destroy();
             }
+            // Remove all listeners to prevent stale references
+            bubble.removeAllListeners();
+            bubble.destroy();
         });
         this.bubbles.clear();
 
@@ -244,12 +288,14 @@ export default class BubblePopScene extends Phaser.Scene {
             if ((bubble as any).floatTween) {
                 (bubble as any).floatTween.destroy();
             }
+            // Remove all listeners to prevent stale references
+            bubble.removeAllListeners();
             bubble.destroy();
         });
         this.bubbleBucket = [];
         this.bubblesPopped = 0;
 
-        // Clear pending refills
+        // Clear pending refills (done above but kept for clarity)
         this.pendingRefills.clear();
 
         // Clean up all particle managers
@@ -262,6 +308,7 @@ export default class BubblePopScene extends Phaser.Scene {
     private backButton!: Text;
     private dragToggle!: Text;
     private progressText!: Text;
+    private progressHint!: Text;
 
     private popSound!: Phaser.Sound.BaseSound;
     private victorySound!: Phaser.Sound.BaseSound;
@@ -351,8 +398,8 @@ export default class BubblePopScene extends Phaser.Scene {
                 // Try to fill this spot with a bubble from the bucket
                 this.fillSpecificSpot(bubbleX, bubbleY);
 
-                // Check if we've depleted the entire bucket (win condition)
-                if (this.bubblesPopped >= this.TOTAL_BUBBLES) {
+                // Check if we've depleted the entire bucket (win condition) - but not in infinite mode
+                if (this.TOTAL_BUBBLES !== -1 && this.bubblesPopped >= this.TOTAL_BUBBLES) {
                     this.finalize();
                 }
             }
@@ -418,19 +465,65 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private addProgressCounter() {
-        this.progressText = this.add.text(this.scale.gameSize.width - 10, 10, `Bubbles: ${this.TOTAL_BUBBLES}`, {
+        const displayText = this.TOTAL_BUBBLES === -1 ? 'Bubbles: ∞' : `Bubbles: ${this.TOTAL_BUBBLES}`;
+        this.progressText = this.add.text(this.scale.gameSize.width - 10, 10, displayText, {
             fontSize: '32px',
             color: 'white'
         })
             .setOrigin(1, 0)
             .setPadding(20, 10, 20, 10)
             .setStyle({ backgroundColor: '#333' })
-            .setDepth(10);
+            .setDepth(10)
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => this.cycleBubbleCount())
+            .on('pointerover', () => this.progressText.setStyle({ fill: '#f39c12', backgroundColor: '#555' }))
+            .on('pointerout', () => this.progressText.setStyle({ fill: '#FFF', backgroundColor: '#333' }));
+    }
+
+    private cycleBubbleCount() {
+        // Cycle to the next bubble count option
+        this.bubbleCountIndex = (this.bubbleCountIndex + 1) % this.BUBBLE_COUNT_OPTIONS.length;
+        this.TOTAL_BUBBLES = this.BUBBLE_COUNT_OPTIONS[this.bubbleCountIndex];
+
+        // Update the display text immediately
+        const displayText = this.TOTAL_BUBBLES === -1 ? 'Bubbles: ∞' : `Bubbles: ${this.TOTAL_BUBBLES}`;
+        this.progressText.setText(displayText);
+
+        // Reset the game with new bubble count
+        this.resetGame();
+    }    private resetGame() {
+        // Set reset flag to prevent phantom bubble creation
+        this.isResetting = true;
+
+        // Clear all existing bubbles and completely reset state
+        this.cleanupBubbles();
+
+        // Reset game state
+        this.bubblesPopped = 0;
+        this.bubbleBucket = [];
+
+        // Small delay to ensure cleanup is complete before recreating
+        this.time.delayedCall(50, () => {
+            // Recreate the bubble bucket and grid
+            this.createBubbleBucket();
+            this.fillBubbleGrid();
+
+            // Update the progress counter
+            this.updateProgressCounter();
+
+            // Clear reset flag
+            this.isResetting = false;
+        });
     }
 
     private updateProgressCounter() {
-        const bubblesLeft = this.TOTAL_BUBBLES - this.bubblesPopped;
-        this.progressText.setText(`Bubbles: ${bubblesLeft}`);
+        if (this.TOTAL_BUBBLES === -1) {
+            // Infinite mode - just show bubbles popped
+            this.progressText.setText(`Bubbles: ${this.bubblesPopped} popped`);
+        } else {
+            const bubblesLeft = this.TOTAL_BUBBLES - this.bubblesPopped;
+            this.progressText.setText(`Bubbles: ${bubblesLeft}`);
+        }
     }
 
     private resetBubbleInteractivity(bubble: Sprite) {
@@ -454,12 +547,17 @@ export default class BubblePopScene extends Phaser.Scene {
             cursor: 'pointer'
         });
 
-        // Add fresh click handler using once() to prevent multiple clicks (only for tap mode)
+        // Add click handler based on current mode
         if (!this.dragToKillEnabled) {
-            bubble.once('pointerdown', () => {
-                this.popBubble(bubble);
+            // Use on() instead of once() to handle multiple potential clicks
+            bubble.on('pointerdown', () => {
+                // Double-check bubble is still in active set before popping
+                if (this.bubbles.has(bubble)) {
+                    this.popBubble(bubble);
+                }
             });
         }
+        // For drag mode, the drag handler will take care of popping
 
         // Create new floating animation
         const floatTween = this.tweens.add({
@@ -482,6 +580,9 @@ export default class BubblePopScene extends Phaser.Scene {
         if (this.progressText) {
             this.progressText.setPosition(this.scale.gameSize.width - 10, 10);
         }
+        if (this.progressHint) {
+            this.progressHint.setPosition(this.scale.gameSize.width - 10, 60);
+        }
     }
 
     private addDragToggle() {
@@ -496,8 +597,11 @@ export default class BubblePopScene extends Phaser.Scene {
                 this.dragToggle.setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#444' });
 
                 // Update all existing bubbles to use the new interaction mode
-                this.bubbles.forEach(bubble => {
-                    this.resetBubbleInteractivity(bubble);
+                // Use a small delay to ensure the mode change is complete
+                this.time.delayedCall(10, () => {
+                    this.bubbles.forEach(bubble => {
+                        this.resetBubbleInteractivity(bubble);
+                    });
                 });
             })
             .setDepth(10)
