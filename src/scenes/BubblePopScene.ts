@@ -138,25 +138,56 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private fillSpecificSpot(x: number, y: number) {
-        // Try to get a bubble from the bucket
-        if (this.bubbleBucket.length > 0) {
-            const bubble = this.bubbleBucket.shift()!; // Take from bucket
-            console.log(`Filling spot. Bucket now has: ${this.bubbleBucket.length} bubbles`);
+        // Create a unique key for this position
+        const positionKey = `${x},${y}`;
 
-            // Position the bubble
-            bubble.x = x;
-            bubble.y = y;
-            bubble.setVisible(true);
-
-            // Reset interactive state and animations
-            this.resetBubbleInteractivity(bubble);
-
-            // Add to active bubbles set
-            this.bubbles.add(bubble);
-        } else {
-            console.log('No bubbles left in bucket to fill spot');
+        // Don't schedule multiple refills for the same position
+        if (this.pendingRefills.has(positionKey)) {
+            return;
         }
-        // If bucket is empty, no replacement bubble (this is fine - we're near the end)
+
+        // Only schedule refill if we have bubbles in the bucket
+        if (this.bubbleBucket.length > 0) {
+            this.pendingRefills.add(positionKey);
+            console.log(`Scheduling delayed refill at ${x},${y}. Bucket has: ${this.bubbleBucket.length} bubbles`);
+
+            // Schedule the refill after 2 seconds
+            this.time.delayedCall(2000, () => {
+                this.pendingRefills.delete(positionKey);
+
+                // Double-check that we still have bubbles and the spot is still empty
+                if (this.bubbleBucket.length > 0 && this.isPositionEmpty(x, y)) {
+                    const bubble = this.bubbleBucket.shift()!; // Take from bucket
+                    console.log(`Delayed refill executing. Bucket now has: ${this.bubbleBucket.length} bubbles`);
+
+                    // Position the bubble
+                    bubble.x = x;
+                    bubble.y = y;
+                    bubble.setVisible(true);
+
+                    // Reset interactive state and animations
+                    this.resetBubbleInteractivity(bubble);
+
+                    // Add to active bubbles set
+                    this.bubbles.add(bubble);
+                } else {
+                    console.log('Delayed refill cancelled - no bubbles or position occupied');
+                }
+            });
+        } else {
+            console.log('No bubbles left in bucket to schedule refill');
+        }
+    }
+
+    private isPositionEmpty(x: number, y: number): boolean {
+        // Check if any active bubble is at this position (within a small tolerance)
+        const tolerance = 10;
+        for (const bubble of this.bubbles) {
+            if (Math.abs(bubble.x - x) < tolerance && Math.abs(bubble.y - y) < tolerance) {
+                return false;
+            }
+        }
+        return true;
     }
 
     finalize() {
@@ -184,6 +215,9 @@ export default class BubblePopScene extends Phaser.Scene {
         });
         this.bubbleBucket = [];
         this.bubblesPopped = 0;
+
+        // Clear pending refills
+        this.pendingRefills.clear();
 
         // Clean up all particle managers
         this.particleManagers.forEach(manager => {
@@ -221,6 +255,11 @@ export default class BubblePopScene extends Phaser.Scene {
      * Count of bubbles that have been popped (removed from the bucket permanently)
      */
     private bubblesPopped = 0;
+
+    /**
+     * Set to track delayed refill timers to prevent duplicates
+     */
+    private pendingRefills = new Set<string>();
 
     private popBubble(bubble: Sprite) {
         // Prevent multiple pops on the same bubble
