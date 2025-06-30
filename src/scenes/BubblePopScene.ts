@@ -21,6 +21,11 @@ export default class BubblePopScene extends Phaser.Scene {
      */
     private readonly TOTAL_BUBBLES = 50;
 
+    /**
+     * Delay in milliseconds before a popped bubble spot gets refilled
+     */
+    private readonly REFILL_DELAY = 2000;
+
     preload() {
         this.load.image('bubble', 'assets/images/bubble.png');
         this.load.image('spark', 'assets/images/particle.png');
@@ -151,8 +156,8 @@ export default class BubblePopScene extends Phaser.Scene {
             this.pendingRefills.add(positionKey);
             console.log(`Scheduling delayed refill at ${x},${y}. Bucket has: ${this.bubbleBucket.length} bubbles`);
 
-            // Schedule the refill after 2 seconds
-            this.time.delayedCall(2000, () => {
+            // Schedule the refill after the configured delay
+            this.time.delayedCall(this.REFILL_DELAY, () => {
                 this.pendingRefills.delete(positionKey);
 
                 // Double-check that we still have bubbles and the spot is still empty
