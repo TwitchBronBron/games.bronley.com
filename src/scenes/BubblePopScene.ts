@@ -367,22 +367,6 @@ export default class BubblePopScene extends Phaser.Scene {
             this.popBubble(bubble);
         });
 
-        // Create floating animation with better tween management
-        const floatTween = this.tweens.add({
-            targets: bubble,
-            props: {
-                x: { value: `+=${randomInt(1, 10)}`, duration: randomInt(1000, 1500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
-                y: { value: `+=${randomInt(1, 10)}`, duration: randomInt(2000, 2500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
-                scaleX: { value: `+=.0${randomInt(1, 3)}`, duration: randomInt(2000, 3000), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
-                scaleY: { value: `+=.0${randomInt(1, 3)}`, duration: randomInt(1000, 2000), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' }
-            },
-            repeat: -1,
-            yoyo: true
-        });
-
-        // Store tween reference on bubble for later cleanup
-        (bubble as any).floatTween = floatTween;
-
         return bubble;
     }
 
@@ -440,7 +424,9 @@ export default class BubblePopScene extends Phaser.Scene {
     private updateProgressCounter() {
         const bubblesLeft = this.TOTAL_BUBBLES - this.bubblesPopped;
         this.progressText.setText(`Bubbles: ${bubblesLeft}`);
-    } private resetBubbleInteractivity(bubble: Sprite) {
+    }
+
+    private resetBubbleInteractivity(bubble: Sprite) {
         const currentX = bubble.x;
         const currentY = bubble.y;
 
