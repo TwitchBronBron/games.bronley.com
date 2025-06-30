@@ -133,9 +133,11 @@ export default class BubblePopScene extends Phaser.Scene {
         // In infinite mode, create enough bubbles to fill the screen plus extras
         let bubblesToCreate = this.TOTAL_BUBBLES;
         if (this.TOTAL_BUBBLES === -1) {
-            // Calculate screen capacity and create 2x that amount for infinite mode
+            // Calculate screen capacity considering top margin and create 2x that amount for infinite mode
+            const topMargin = this.getTopMargin();
+            const availableHeight = this.gameHeight - topMargin;
             const maxBubblesHoriz = Math.round(this.gameWidth / this.bubbleSize);
-            const maxBubblesVert = Math.round(this.gameHeight / this.bubbleSize);
+            const maxBubblesVert = Math.round(availableHeight / this.bubbleSize);
             const screenCapacity = maxBubblesHoriz * maxBubblesVert;
             bubblesToCreate = screenCapacity * 2; // Keep 2x screen capacity in reserve
         }
@@ -152,8 +154,11 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private fillBubbleGrid() {
+        const topMargin = this.getTopMargin();
+        const availableHeight = this.gameHeight - topMargin;
+
         const maxBubblesHoriz = Math.round(this.gameWidth / this.bubbleSize);
-        const maxBubblesVert = Math.round(this.gameHeight / this.bubbleSize);
+        const maxBubblesVert = Math.round(availableHeight / this.bubbleSize);
         const maxVisibleBubbles = maxBubblesHoriz * maxBubblesVert;
 
         // Check which bubbles are still within the visible area
@@ -162,7 +167,7 @@ export default class BubblePopScene extends Phaser.Scene {
 
         this.bubbles.forEach(bubble => {
             const col = Math.round((bubble.x - this.bubbleSize / 2) / this.bubbleSize);
-            const row = Math.round((bubble.y - this.bubbleSize / 2) / this.bubbleSize);
+            const row = Math.round((bubble.y - topMargin - this.bubbleSize / 2) / this.bubbleSize);
 
             // Check if this bubble position is still within the new grid bounds
             if (col >= 0 && col < maxBubblesHoriz && row >= 0 && row < maxBubblesVert) {
@@ -186,7 +191,7 @@ export default class BubblePopScene extends Phaser.Scene {
         const occupiedPositions = new Set<string>();
         bubblesStillVisible.forEach(bubble => {
             const col = Math.round((bubble.x - this.bubbleSize / 2) / this.bubbleSize);
-            const row = Math.round((bubble.y - this.bubbleSize / 2) / this.bubbleSize);
+            const row = Math.round((bubble.y - topMargin - this.bubbleSize / 2) / this.bubbleSize);
             occupiedPositions.add(`${row},${col}`);
         });
 
@@ -218,7 +223,7 @@ export default class BubblePopScene extends Phaser.Scene {
                     const bubble = this.bubbleBucket.shift()!; // Take from bucket
 
                     bubble.x = col * this.bubbleSize + this.bubbleSize / 2;
-                    bubble.y = row * this.bubbleSize + this.bubbleSize / 2;
+                    bubble.y = row * this.bubbleSize + this.bubbleSize / 2 + topMargin;
                     bubble.setVisible(true);
                     bubble.setAlpha(1); // Show immediately on game start
 
@@ -1026,6 +1031,19 @@ export default class BubblePopScene extends Phaser.Scene {
                 this.settingsPanelVisible = false;
             }
         });
+    }
+
+    /**
+     * Calculate the top margin space needed for buttons and UI elements
+     */
+    private getTopMargin(): number {
+        const scaleFactor = this.getUIScaleFactor();
+
+        // Base margin on button size plus minimal padding
+        // The back button is typically the tallest element in the top area
+        const buttonHeight = Math.round(60 * scaleFactor) + Math.round(12 * scaleFactor * 2); // font size + vertical padding
+
+        return buttonHeight - 10;
     }
 
 }
