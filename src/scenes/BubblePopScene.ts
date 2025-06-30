@@ -340,6 +340,13 @@ export default class BubblePopScene extends Phaser.Scene {
         // Remove all pending time events to prevent phantom bubbles
         this.time.removeAllEvents();
 
+        // Clean up settings panel if it's open
+        if (this.settingsPanelVisible) {
+            this.settingsPanel?.destroy();
+            this.settingsBackground?.destroy();
+            this.settingsPanelVisible = false;
+        }
+
         // Clean up all tweens and bubbles in active set
         this.bubbles.forEach(bubble => {
             this.tweens.killTweensOf(bubble);
@@ -380,6 +387,9 @@ export default class BubblePopScene extends Phaser.Scene {
     private dragToggle!: Text;
     private progressText!: Text;
     private progressHint!: Text;
+    private settingsPanel!: Phaser.GameObjects.Container;
+    private settingsBackground!: Phaser.GameObjects.Rectangle;
+    private settingsPanelVisible = false;
 
     private popSound!: Phaser.Sound.BaseSound;
     private victorySound!: Phaser.Sound.BaseSound;
@@ -738,12 +748,99 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private toggleSettingsPanel() {
-        // For now, just show a simple alert or console message
-        // This can be expanded later to show a proper settings panel
-        console.log('Settings panel toggle - coming soon!');
+        if (this.settingsPanelVisible) {
+            this.hideSettingsPanel();
+        } else {
+            this.showSettingsPanel();
+        }
+    }
 
-        // You could implement a proper settings overlay here
-        // For example, show/hide a panel with various game options
+    private showSettingsPanel() {
+        if (this.settingsPanelVisible) return;
+
+        // Create semi-transparent background overlay
+        this.settingsBackground = this.add.rectangle(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY,
+            this.gameWidth,
+            this.gameHeight,
+            0x000000,
+            0.7
+        ).setDepth(20).setInteractive();
+
+        // Create main container for the settings panel
+        this.settingsPanel = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY);
+        this.settingsPanel.setDepth(21);
+
+        // Panel background
+        const panelBg = this.add.rectangle(0, 0, 400, 300, 0x333333);
+        panelBg.setStrokeStyle(2, 0x555555);
+
+        // Panel title
+        const title = this.add.text(0, -120, 'Settings', {
+            fontSize: '32px',
+            color: 'white',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        // Close button (X)
+        const closeButton = this.add.text(170, -120, '×', {
+            fontSize: '36px',
+            color: 'white'
+        })
+        .setOrigin(0.5)
+        .setPadding(10, 5, 10, 5)
+        .setStyle({ backgroundColor: '#666' })
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this.hideSettingsPanel())
+        .on('pointerover', () => closeButton.setStyle({ fill: '#f39c12', backgroundColor: '#888' }))
+        .on('pointerout', () => closeButton.setStyle({ fill: '#FFF', backgroundColor: '#666' }));
+
+        // Add placeholder text for now
+        const placeholder = this.add.text(0, 0, 'Settings panel content\ncoming soon...', {
+            fontSize: '18px',
+            color: '#ccc',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        // Add all elements to the container
+        this.settingsPanel.add([panelBg, title, closeButton, placeholder]);
+
+        // Animate panel in
+        this.settingsPanel.setAlpha(0);
+        this.settingsPanel.setScale(0.8);
+
+        this.tweens.add({
+            targets: this.settingsPanel,
+            alpha: 1,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 200,
+            ease: 'Back.easeOut'
+        });
+
+        this.settingsPanelVisible = true;
+
+        // Close panel when clicking on background
+        this.settingsBackground.on('pointerdown', () => this.hideSettingsPanel());
+    }
+
+    private hideSettingsPanel() {
+        if (!this.settingsPanelVisible) return;
+
+        this.tweens.add({
+            targets: this.settingsPanel,
+            alpha: 0,
+            scaleX: 0.8,
+            scaleY: 0.8,
+            duration: 150,
+            ease: 'Back.easeIn',
+            onComplete: () => {
+                this.settingsPanel?.destroy();
+                this.settingsBackground?.destroy();
+                this.settingsPanelVisible = false;
+            }
+        });
     }
 
 }
