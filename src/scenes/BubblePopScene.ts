@@ -154,6 +154,9 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private handleResize() {
+        // Reposition UI elements
+        this.repositionProgressCounter();
+        
         // Refill the grid using the bucket system
         this.fillBubbleGrid();
     }
@@ -508,6 +511,12 @@ export default class BubblePopScene extends Phaser.Scene {
         (bubble as any).floatTween = floatTween;
 
         console.log(`Reset complete for bubble at ${bubble.x}, ${bubble.y}, alpha: ${bubble.alpha}, visible: ${bubble.visible}`);
+    }
+
+    private repositionProgressCounter() {
+        if (this.progressText) {
+            this.progressText.setPosition(this.scale.gameSize.width - 10, 10);
+        }
     }
 
 }
