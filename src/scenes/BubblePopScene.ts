@@ -19,7 +19,7 @@ export default class BubblePopScene extends Phaser.Scene {
     /**
      * Total number of bubbles in the game - when this bucket is empty, the player wins
      */
-    private readonly TOTAL_BUBBLES = 80;
+    private readonly TOTAL_BUBBLES = 50;
 
     /**
      * Delay in milliseconds before a popped bubble spot gets refilled
@@ -127,23 +127,10 @@ export default class BubblePopScene extends Phaser.Scene {
                     bubble.x = col * this.bubbleSize + this.bubbleSize / 2;
                     bubble.y = row * this.bubbleSize + this.bubbleSize / 2;
                     bubble.setVisible(true);
+                    bubble.setAlpha(1); // Show immediately on game start
 
-                    // Start with alpha 0 for fade-in animation
-                    bubble.setAlpha(0);
-
-                    // Animate the bubble fading in with a slight delay based on position
-                    const delay = (row + col) * 100; // Stagger the animations
-                    this.tweens.add({
-                        targets: bubble,
-                        alpha: 1,
-                        ease: 'Sine.easeOut',
-                        duration: 600,
-                        delay: delay,
-                        onComplete: () => {
-                            // Reset interactive state and animations after fade-in completes
-                            this.resetBubbleInteractivity(bubble);
-                        }
-                    });
+                    // Reset interactive state and animations immediately
+                    this.resetBubbleInteractivity(bubble);
 
                     // Add to active bubbles set
                     this.bubbles.add(bubble);
@@ -156,7 +143,7 @@ export default class BubblePopScene extends Phaser.Scene {
     private handleResize() {
         // Reposition UI elements
         this.repositionProgressCounter();
-        
+
         // Refill the grid using the bucket system
         this.fillBubbleGrid();
     }
