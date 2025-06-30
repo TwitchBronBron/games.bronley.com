@@ -519,7 +519,8 @@ export default class BubblePopScene extends Phaser.Scene {
             .setPadding(20, 0, 20, 10)
             .setStyle({ backgroundColor: '#111' })
             .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => {
+            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
                 this.scene.restart();
                 this.scene.switch(SceneName.TitleScene);
             })
@@ -533,7 +534,8 @@ export default class BubblePopScene extends Phaser.Scene {
             .setPadding(15, 5, 15, 5)
             .setStyle({ backgroundColor: '#333' })
             .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => {
+            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
                 this.toggleSettingsPanel();
             })
             .setDepth(10)
@@ -548,7 +550,8 @@ export default class BubblePopScene extends Phaser.Scene {
             .setResolution(10)
             .setStyle({ backgroundColor: 'green' })
             .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => {
+            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
                 this.cleanupBubbles();
                 this.scene.restart();
             })
@@ -569,7 +572,10 @@ export default class BubblePopScene extends Phaser.Scene {
             .setStyle({ backgroundColor: '#333' })
             .setDepth(10)
             .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => this.cycleBubbleCount())
+            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
+                this.cycleBubbleCount();
+            })
             .on('pointerover', () => this.progressText.setStyle({ fill: '#f39c12', backgroundColor: '#555' }))
             .on('pointerout', () => this.progressText.setStyle({ fill: '#FFF', backgroundColor: '#333' }));
     }
@@ -648,6 +654,9 @@ export default class BubblePopScene extends Phaser.Scene {
         if (!this.dragToKillEnabled) {
             // Use on() instead of once() to handle multiple potential clicks
             bubble.on('pointerdown', () => {
+                // Don't pop bubbles if settings panel is open
+                if (this.settingsPanelVisible) return;
+                
                 // Double-check bubble is still in active set before popping
                 if (this.bubbles.has(bubble)) {
                     this.popBubble(bubble);
@@ -688,7 +697,8 @@ export default class BubblePopScene extends Phaser.Scene {
             .setPadding(15, 5, 15, 5)
             .setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#444' })
             .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => {
+            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
                 this.dragToKillEnabled = !this.dragToKillEnabled;
                 this.dragToggle.setText(`Drag: ${this.dragToKillEnabled ? 'ON' : 'OFF'}`);
                 this.dragToggle.setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#444' });
@@ -714,7 +724,7 @@ export default class BubblePopScene extends Phaser.Scene {
         let lastDraggedBubble: Sprite | null = null;
 
         this.input.on('pointerdown', () => {
-            if (this.dragToKillEnabled) {
+            if (this.dragToKillEnabled && !this.settingsPanelVisible) {
                 isDragging = true;
                 lastDraggedBubble = null;
             }
@@ -726,7 +736,7 @@ export default class BubblePopScene extends Phaser.Scene {
         });
 
         this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-            if (this.dragToKillEnabled && isDragging) {
+            if (this.dragToKillEnabled && isDragging && !this.settingsPanelVisible) {
                 // Check if pointer is over any bubble
                 const bubbleAtPointer = this.getBubbleAtPosition(pointer.x, pointer.y);
                 if (bubbleAtPointer && bubbleAtPointer !== lastDraggedBubble) {
