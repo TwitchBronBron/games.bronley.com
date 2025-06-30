@@ -22,9 +22,9 @@
     "@rollup/plugin-alias": "^3.1.9",
     "@rollup/plugin-commonjs": "^22.0.0",
     "@rollup/plugin-replace": "^4.0.0",
-    "@types/node": "^17.0.31",
-    "phaser": "^3.55.2",
-    "typescript": "^5.0.2",
-    "vite": "^4.2.1"
+    "@types/node": "^24.0.7",
+    "phaser": "^3.90.0",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.0"
   }
 }

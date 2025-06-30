@@ -34,6 +34,7 @@ export default class BubblePopScene extends Phaser.Scene {
 
     create() {
         console.log('create bubble scene');
+        this.cleanupBubbles(); // Clean up any existing bubbles from previous runs
         this.addBackButton();
         this.computeSizing();
 
@@ -63,6 +64,23 @@ export default class BubblePopScene extends Phaser.Scene {
         this.addPlayAgainButton();
     }
 
+    private cleanupBubbles() {
+        // Clean up all tweens and bubbles
+        this.bubbles.forEach(bubble => {
+            this.tweens.killTweensOf(bubble);
+            if ((bubble as any).floatTween) {
+                (bubble as any).floatTween.destroy();
+            }
+        });
+        this.bubbles.clear();
+        
+        // Clean up all particle managers
+        this.particleManagers.forEach(manager => {
+            manager.destroy();
+        });
+        this.particleManagers.clear();
+    }
+
     private backButton!: Text;
 
     private popSound!: Phaser.Sound.BaseSound;
@@ -80,26 +98,36 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     private bubbles = new Set<Sprite>();
+    private particleManagers = new Set<Phaser.GameObjects.Particles.ParticleEmitter>();
 
     private popBubble(bubble: Sprite) {
+        // Prevent multiple pops on the same bubble
+        if (!this.bubbles.has(bubble)) {
+            return;
+        }
+
+        // Stop any existing tweens on this bubble to prevent conflicts
+        this.tweens.killTweensOf(bubble);
+
         const v = 50;
-        var particleManager = this.make.particles({
-            key: 'spark',
-            add: true,
-            emitters: [
-                {
-                    x: { min: bubble.x - v, max: bubble.x + v },
-                    y: { min: bubble.y - v, max: bubble.y + v },
-                    speed: 2000,
-                    quantity: 5,
-                    accelerationY: 13000,
-                    scaleX: { min: 0.05, max: .1 },
-                    scaleY: .1
-                }
-            ]
+        // Use simpler particle approach similar to original
+        var particleManager = this.add.particles(bubble.x, bubble.y, 'spark', {
+            speed: 2000,
+            quantity: 5,
+            gravityY: 13000,
+            scale: { min: 0.05, max: 0.1 },
+            x: { min: -v, max: v },
+            y: { min: -v, max: v }
         });
 
+        // Track particle manager for cleanup
+        this.particleManagers.add(particleManager);
+
         this.popSound?.play();
+
+        // Remove bubble from set immediately to prevent duplicate pops
+        this.bubbles.delete(bubble);
+
         this.tweens.add({
             targets: bubble,
             scaleX: 0,
@@ -108,9 +136,16 @@ export default class BubblePopScene extends Phaser.Scene {
             duration: 100,
             onComplete: () => {
                 bubble.destroy();
-                particleManager.emitters.each((e) => e.stop());
 
-                this.bubbles.delete(bubble);
+                // Stop the emitter and schedule cleanup
+                particleManager.stop();
+                
+                // Clean up particle manager after particles have fallen
+                this.time.delayedCall(2000, () => {
+                    this.particleManagers.delete(particleManager);
+                    particleManager.destroy();
+                });
+
                 if (this.bubbles.size === 0) {
                     this.finalize();
                 }
@@ -128,11 +163,17 @@ export default class BubblePopScene extends Phaser.Scene {
         bubble.setInteractive({
             cursor: 'pointer'
         });
+
+        // Store reference to bubble for cleanup
+        this.bubbles.add(bubble);
+
+        // Use once to prevent multiple clicks
         bubble.once('pointerdown', () => {
             this.popBubble(bubble);
         });
-        this.bubbles.add(bubble);
-        this.tweens.add({
+
+        // Create floating animation with better tween management
+        const floatTween = this.tweens.add({
             targets: bubble,
             props: {
                 x: { value: `+=${randomInt(1, 10)}`, duration: randomInt(1000, 1500), delay: randomInt(1, 1000), ease: 'Sine.easeInOut' },
@@ -143,6 +184,10 @@ export default class BubblePopScene extends Phaser.Scene {
             repeat: -1,
             yoyo: true
         });
+
+        // Store tween reference on bubble for later cleanup
+        (bubble as any).floatTween = floatTween;
+
         return bubble;
     }
 
@@ -177,6 +222,7 @@ export default class BubblePopScene extends Phaser.Scene {
             .setStyle({ backgroundColor: 'green' })
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
+                this.cleanupBubbles();
                 this.scene.restart();
             })
             .setDepth(10)
