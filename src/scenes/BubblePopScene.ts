@@ -19,7 +19,7 @@ export default class BubblePopScene extends Phaser.Scene {
     /**
      * Total number of bubbles in the game - when this bucket is empty, the player wins
      */
-    private readonly TOTAL_BUBBLES = 30;
+    private readonly TOTAL_BUBBLES = 50;
 
     preload() {
         this.load.image('bubble', 'assets/images/bubble.png');
@@ -141,6 +141,7 @@ export default class BubblePopScene extends Phaser.Scene {
         // Try to get a bubble from the bucket
         if (this.bubbleBucket.length > 0) {
             const bubble = this.bubbleBucket.shift()!; // Take from bucket
+            console.log(`Filling spot. Bucket now has: ${this.bubbleBucket.length} bubbles`);
 
             // Position the bubble
             bubble.x = x;
@@ -152,6 +153,8 @@ export default class BubblePopScene extends Phaser.Scene {
 
             // Add to active bubbles set
             this.bubbles.add(bubble);
+        } else {
+            console.log('No bubbles left in bucket to fill spot');
         }
         // If bucket is empty, no replacement bubble (this is fine - we're near the end)
     }
@@ -222,8 +225,11 @@ export default class BubblePopScene extends Phaser.Scene {
     private popBubble(bubble: Sprite) {
         // Prevent multiple pops on the same bubble
         if (!this.bubbles.has(bubble)) {
+            console.log('Attempted to pop bubble not in active set');
             return;
         }
+
+        console.log(`Popping bubble. Active: ${this.bubbles.size}, Bucket: ${this.bubbleBucket.length}, Popped: ${this.bubblesPopped}`);
 
         // Stop any existing tweens on this bubble to prevent conflicts
         this.tweens.killTweensOf(bubble);
@@ -293,8 +299,7 @@ export default class BubblePopScene extends Phaser.Scene {
             cursor: 'pointer'
         });
 
-        // Store reference to bubble for cleanup
-        this.bubbles.add(bubble);
+        // Note: Don't add to this.bubbles set here - only add when bubble becomes active
 
         // Use once to prevent multiple clicks
         bubble.once('pointerdown', () => {
@@ -325,7 +330,7 @@ export default class BubblePopScene extends Phaser.Scene {
         this.bubbleWidth = bubble.displayWidth;
         this.bubbleHeight = bubble.displayHeight;
         bubble.destroy();
-        this.bubbles.delete(bubble);
+        // No need to delete from bubbles set since it was never added
     }
 
     private addBackButton() {
