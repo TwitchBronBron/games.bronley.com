@@ -15,7 +15,7 @@ export default class BubblePopScene extends Phaser.Scene {
      * Storage keys for persisting settings
      */
     private readonly STORAGE_KEYS = {
-        BUBBLE_COUNT_INDEX: 'bubblePopScene_bubbleCountIndex',
+        BUBBLE_COUNT: 'bubblePopScene_bubbleCount',
         DRAG_TO_KILL_ENABLED: 'bubblePopScene_dragToKillEnabled'
     };
 
@@ -28,16 +28,6 @@ export default class BubblePopScene extends Phaser.Scene {
      * Total number of bubbles in the game - when this bucket is empty, the player wins
      */
     private TOTAL_BUBBLES = 50;
-
-    /**
-     * Available bubble count options (infinite is represented as -1)
-     */
-    private readonly BUBBLE_COUNT_OPTIONS = [20, 50, 200, -1];
-
-    /**
-     * Current index in the bubble count options
-     */
-    private bubbleCountIndex = 1; // Start with 50 bubbles
 
     /**
      * Delay in milliseconds before a popped bubble spot gets refilled
@@ -89,13 +79,12 @@ export default class BubblePopScene extends Phaser.Scene {
      */
     private loadSettings() {
         try {
-            // Load bubble count index
-            const savedBubbleCountIndex = localStorage.getItem(this.STORAGE_KEYS.BUBBLE_COUNT_INDEX);
-            if (savedBubbleCountIndex !== null) {
-                const index = parseInt(savedBubbleCountIndex, 10);
-                if (index >= 0 && index < this.BUBBLE_COUNT_OPTIONS.length) {
-                    this.bubbleCountIndex = index;
-                    this.TOTAL_BUBBLES = this.BUBBLE_COUNT_OPTIONS[this.bubbleCountIndex];
+            // Load bubble count
+            const savedBubbleCount = localStorage.getItem(this.STORAGE_KEYS.BUBBLE_COUNT);
+            if (savedBubbleCount !== null) {
+                const count = parseInt(savedBubbleCount, 10);
+                if (!isNaN(count)) {
+                    this.TOTAL_BUBBLES = count;
                 }
             }
 
@@ -114,7 +103,7 @@ export default class BubblePopScene extends Phaser.Scene {
      */
     private saveSettings() {
         try {
-            localStorage.setItem(this.STORAGE_KEYS.BUBBLE_COUNT_INDEX, this.bubbleCountIndex.toString());
+            localStorage.setItem(this.STORAGE_KEYS.BUBBLE_COUNT, this.TOTAL_BUBBLES.toString());
             localStorage.setItem(this.STORAGE_KEYS.DRAG_TO_KILL_ENABLED, this.dragToKillEnabled.toString());
         } catch (error) {
             console.warn('Failed to save settings to localStorage:', error);
@@ -677,10 +666,9 @@ export default class BubblePopScene extends Phaser.Scene {
             .setDepth(10);
     }
 
-    private cycleBubbleCount(newIndex: number) {
-        // Set the bubble count to the specified option
-        this.bubbleCountIndex = newIndex;
-        this.TOTAL_BUBBLES = this.BUBBLE_COUNT_OPTIONS[this.bubbleCountIndex];
+    private setBubbleCount(newCount: number) {
+        // Set the bubble count to the specified value
+        this.TOTAL_BUBBLES = newCount;
 
         // Save the new setting
         this.saveSettings();
@@ -902,31 +890,91 @@ export default class BubblePopScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // Create radio buttons for bubble count options - scale everything larger
-        const bubbleCountOptions: Array<{radio: Phaser.GameObjects.Arc, label: Phaser.GameObjects.Text}> = [];
-        const bubbleCountLabels = ['20', '50', '200', '∞'];
-        const optionFontSize = Math.round(28 * scaleFactor); // Increased from 18
-        const optionSpacing = Math.round(40 * scaleFactor); // Increased from 25
-        const radioRadius = Math.round(12 * scaleFactor); // Increased from 8
-        const radioStrokeWidth = Math.round(3 * scaleFactor); // Increased from 2
+        // Create bubble count control with textbox and +/-5 buttons
+        const controlY = Math.round(-120 * scaleFactor);
+        const buttonFontSize = Math.round(32 * scaleFactor);
+        const textboxFontSize = Math.round(28 * scaleFactor);
+        const buttonPadding = Math.round(16 * scaleFactor);
+        const buttonPaddingV = Math.round(12 * scaleFactor);
 
-        bubbleCountLabels.forEach((label, index) => {
-            const yPosition = Math.round(-120 * scaleFactor) + (index * optionSpacing); // Adjusted starting position
-            const isSelected = this.bubbleCountIndex === index;
+        // -5 button
+        const minusButton = this.add.text(Math.round(-120 * scaleFactor), controlY, '-5', {
+            fontSize: `${buttonFontSize}px`,
+            color: 'white'
+        })
+        .setOrigin(0.5)
+        .setPadding(buttonPadding, buttonPaddingV, buttonPadding, buttonPaddingV)
+        .setStyle({ backgroundColor: '#555' })
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+            event.stopPropagation();
+            if (this.TOTAL_BUBBLES !== -1) {
+                const newCount = Math.max(5, this.TOTAL_BUBBLES - 5);
+                this.setBubbleCount(newCount);
+                bubbleCountText.setText(newCount.toString());
+            }
+        })
+        .on('pointerover', () => minusButton.setStyle({ fill: '#f39c12', backgroundColor: '#777' }))
+        .on('pointerout', () => minusButton.setStyle({ fill: '#FFF', backgroundColor: '#555' }));
 
-            // Radio button circle - scale radius and stroke larger
-            const radioButton = this.add.circle(Math.round(-140 * scaleFactor), yPosition, radioRadius, isSelected ? 0x00ff00 : 0x666666); // Moved further left
-            radioButton.setStrokeStyle(radioStrokeWidth, 0xffffff);
+        // Current count textbox
+        const currentCountText = this.TOTAL_BUBBLES === -1 ? '∞' : this.TOTAL_BUBBLES.toString();
+        const bubbleCountText = this.add.text(0, controlY, currentCountText, {
+            fontSize: `${textboxFontSize}px`,
+            color: 'white'
+        })
+        .setOrigin(0.5)
+        .setPadding(Math.round(20 * scaleFactor), Math.round(10 * scaleFactor), Math.round(20 * scaleFactor), Math.round(10 * scaleFactor))
+        .setStyle({ backgroundColor: '#222', borderColor: '#666', borderWidth: 2 });
 
-            // Option label - scale font and position larger
-            const optionLabel = this.add.text(Math.round(-110 * scaleFactor), yPosition, label, { // Adjusted position
-                fontSize: `${optionFontSize}px`,
-                color: isSelected ? '#00ff00' : 'white'
-            }).setOrigin(0, 0.5);
+        // +5 button
+        const plusButton = this.add.text(Math.round(120 * scaleFactor), controlY, '+5', {
+            fontSize: `${buttonFontSize}px`,
+            color: 'white'
+        })
+        .setOrigin(0.5)
+        .setPadding(buttonPadding, buttonPaddingV, buttonPadding, buttonPaddingV)
+        .setStyle({ backgroundColor: '#555' })
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+            event.stopPropagation();
+            if (this.TOTAL_BUBBLES !== -1) {
+                const newCount = this.TOTAL_BUBBLES + 5;
+                this.setBubbleCount(newCount);
+                bubbleCountText.setText(newCount.toString());
+            }
+        })
+        .on('pointerover', () => plusButton.setStyle({ fill: '#f39c12', backgroundColor: '#777' }))
+        .on('pointerout', () => plusButton.setStyle({ fill: '#FFF', backgroundColor: '#555' }));
 
-            // Store the radio button and label
-            bubbleCountOptions.push({radio: radioButton, label: optionLabel});
-        });
+        // Infinite mode button
+        const infiniteY = Math.round(-60 * scaleFactor);
+        const infiniteButton = this.add.text(0, infiniteY, this.TOTAL_BUBBLES === -1 ? 'Exit Infinite' : 'Infinite Mode', {
+            fontSize: `${buttonFontSize}px`,
+            color: 'white'
+        })
+        .setOrigin(0.5)
+        .setPadding(Math.round(24 * scaleFactor), buttonPaddingV, Math.round(24 * scaleFactor), buttonPaddingV)
+        .setStyle({ backgroundColor: this.TOTAL_BUBBLES === -1 ? '#cc6600' : '#006600' })
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+            event.stopPropagation();
+            if (this.TOTAL_BUBBLES === -1) {
+                // Exit infinite mode - set to 50
+                this.setBubbleCount(50);
+                infiniteButton.setText('Infinite Mode');
+                infiniteButton.setStyle({ backgroundColor: '#006600' });
+                bubbleCountText.setText('50');
+            } else {
+                // Enter infinite mode
+                this.setBubbleCount(-1);
+                infiniteButton.setText('Exit Infinite');
+                infiniteButton.setStyle({ backgroundColor: '#cc6600' });
+                bubbleCountText.setText('∞');
+            }
+        })
+        .on('pointerover', () => infiniteButton.setStyle({ fill: '#f39c12' }))
+        .on('pointerout', () => infiniteButton.setStyle({ fill: '#FFF' }));
 
         // Drag Mode Toggle - scale positions, fonts, and padding larger
         const dragModeY = Math.round(100 * scaleFactor); // Moved down for larger spacing
@@ -975,53 +1023,7 @@ export default class BubblePopScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Add all elements to the container
-        this.settingsPanel.add([panelBg, title, closeButton, bubbleCountLabel, dragLabel, dragToggleButton, dragDescription]);
-
-        // Add the bubble count radio buttons to the panel
-        bubbleCountOptions.forEach(option => {
-            this.settingsPanel.add([option.radio, option.label]);
-        });
-
-        // Add click areas to the panel (these need to be added separately as they contain interaction logic)
-        // Scale the click areas larger too
-        const clickAreaWidth = Math.round(300 * scaleFactor); // Increased from 200
-        const clickAreaHeight = Math.round(40 * scaleFactor); // Increased from 25
-        bubbleCountLabels.forEach((label, index) => {
-            const yPosition = Math.round(-120 * scaleFactor) + (index * optionSpacing);
-            const clickArea = this.add.rectangle(this.cameras.main.centerX + Math.round(-80 * scaleFactor), this.cameras.main.centerY + yPosition, clickAreaWidth, clickAreaHeight, 0x000000, 0) // Adjusted position
-                .setInteractive({ useHandCursor: true })
-                .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
-                    event.stopPropagation();
-
-                    // Update all radio buttons
-                    bubbleCountOptions.forEach((option, btnIndex) => {
-                        if (btnIndex === index) {
-                            option.radio.setFillStyle(0x00ff00);
-                            option.label.setColor('#00ff00');
-                        } else {
-                            option.radio.setFillStyle(0x666666);
-                            option.label.setColor('white');
-                        }
-                    });
-
-                    // Update the bubble count
-                    this.cycleBubbleCount(index);
-
-                    // Close settings panel after selection
-                    this.time.delayedCall(300, () => this.hideSettingsPanel());
-                })
-                .on('pointerover', () => {
-                    if (this.bubbleCountIndex !== index) {
-                        bubbleCountOptions[index].label.setColor('#f39c12');
-                    }
-                })
-                .on('pointerout', () => {
-                    if (this.bubbleCountIndex !== index) {
-                        bubbleCountOptions[index].label.setColor('white');
-                    }
-                })
-                .setDepth(22);
-        });
+        this.settingsPanel.add([panelBg, title, closeButton, bubbleCountLabel, minusButton, bubbleCountText, plusButton, infiniteButton, dragLabel, dragToggleButton, dragDescription]);
 
         // Animate panel in
         this.settingsPanel.setAlpha(0);
