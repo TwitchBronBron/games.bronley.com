@@ -844,6 +844,9 @@ export default class BubblePopScene extends Phaser.Scene {
     private showSettingsPanel() {
         if (this.settingsPanelVisible) return;
 
+        // Get scaling factor for responsive design
+        const scaleFactor = this.getUIScaleFactor();
+
         // Create semi-transparent background overlay
         this.settingsBackground = this.add.rectangle(
             this.cameras.main.centerX,
@@ -858,52 +861,66 @@ export default class BubblePopScene extends Phaser.Scene {
         this.settingsPanel = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY);
         this.settingsPanel.setDepth(21);
 
-        // Panel background - make it taller for the new options
-        const panelBg = this.add.rectangle(0, 0, 450, 450, 0x333333);
-        panelBg.setStrokeStyle(2, 0x555555);
+        // Panel background - scale with screen size
+        const panelWidth = Math.round(450 * scaleFactor);
+        const panelHeight = Math.round(450 * scaleFactor);
+        const panelBg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x333333);
+        panelBg.setStrokeStyle(Math.round(2 * scaleFactor), 0x555555);
 
-        // Panel title
-        const title = this.add.text(0, -190, 'Settings', {
-            fontSize: '32px',
+        // Panel title - scale font size
+        const titleFontSize = Math.round(32 * scaleFactor);
+        const titleY = Math.round(-190 * scaleFactor);
+        const title = this.add.text(0, titleY, 'Settings', {
+            fontSize: `${titleFontSize}px`,
             color: 'white',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // Close button (X)
-        const closeButton = this.add.text(195, -190, '×', {
-            fontSize: '36px',
+        // Close button (X) - scale position, size and padding
+        const closeButtonFontSize = Math.round(36 * scaleFactor);
+        const closeButtonX = Math.round(195 * scaleFactor);
+        const closeButtonPaddingH = Math.round(10 * scaleFactor);
+        const closeButtonPaddingV = Math.round(5 * scaleFactor);
+        const closeButton = this.add.text(closeButtonX, titleY, '×', {
+            fontSize: `${closeButtonFontSize}px`,
             color: 'white'
         })
         .setOrigin(0.5)
-        .setPadding(10, 5, 10, 5)
+        .setPadding(closeButtonPaddingH, closeButtonPaddingV, closeButtonPaddingH, closeButtonPaddingV)
         .setStyle({ backgroundColor: '#666' })
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => this.hideSettingsPanel())
         .on('pointerover', () => closeButton.setStyle({ fill: '#f39c12', backgroundColor: '#888' }))
         .on('pointerout', () => closeButton.setStyle({ fill: '#FFF', backgroundColor: '#666' }));
 
-        // Bubble Count Selection
-        const bubbleCountLabel = this.add.text(0, -130, 'Bubble Count:', {
-            fontSize: '20px',
+        // Bubble Count Selection - scale font and position
+        const labelFontSize = Math.round(20 * scaleFactor);
+        const labelY = Math.round(-130 * scaleFactor);
+        const bubbleCountLabel = this.add.text(0, labelY, 'Bubble Count:', {
+            fontSize: `${labelFontSize}px`,
             color: 'white',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // Create radio buttons for bubble count options
+        // Create radio buttons for bubble count options - scale everything
         const bubbleCountOptions: Array<{radio: Phaser.GameObjects.Arc, label: Phaser.GameObjects.Text}> = [];
         const bubbleCountLabels = ['20', '50', '200', '∞'];
+        const optionFontSize = Math.round(18 * scaleFactor);
+        const optionSpacing = Math.round(25 * scaleFactor);
+        const radioRadius = Math.round(8 * scaleFactor);
+        const radioStrokeWidth = Math.round(2 * scaleFactor);
 
         bubbleCountLabels.forEach((label, index) => {
-            const yPosition = -90 + (index * 25);
+            const yPosition = Math.round(-90 * scaleFactor) + (index * optionSpacing);
             const isSelected = this.bubbleCountIndex === index;
 
-            // Radio button circle
-            const radioButton = this.add.circle(-100, yPosition, 8, isSelected ? 0x00ff00 : 0x666666);
-            radioButton.setStrokeStyle(2, 0xffffff);
+            // Radio button circle - scale radius and stroke
+            const radioButton = this.add.circle(Math.round(-100 * scaleFactor), yPosition, radioRadius, isSelected ? 0x00ff00 : 0x666666);
+            radioButton.setStrokeStyle(radioStrokeWidth, 0xffffff);
 
-            // Option label
-            const optionLabel = this.add.text(-80, yPosition, label, {
-                fontSize: '18px',
+            // Option label - scale font and position
+            const optionLabel = this.add.text(Math.round(-80 * scaleFactor), yPosition, label, {
+                fontSize: `${optionFontSize}px`,
                 color: isSelected ? '#00ff00' : 'white'
             }).setOrigin(0, 0.5);
 
@@ -911,18 +928,22 @@ export default class BubblePopScene extends Phaser.Scene {
             bubbleCountOptions.push({radio: radioButton, label: optionLabel});
         });
 
-        // Drag Mode Toggle
-        const dragLabel = this.add.text(-150, 50, 'Drag Mode:', {
-            fontSize: '20px',
+        // Drag Mode Toggle - scale positions, fonts, and padding
+        const dragModeY = Math.round(50 * scaleFactor);
+        const dragLabel = this.add.text(Math.round(-150 * scaleFactor), dragModeY, 'Drag Mode:', {
+            fontSize: `${labelFontSize}px`,
             color: 'white'
         }).setOrigin(0, 0.5);
 
-        const dragToggleButton = this.add.text(50, 50, this.dragToKillEnabled ? 'ON' : 'OFF', {
-            fontSize: '20px',
+        const toggleButtonFontSize = Math.round(20 * scaleFactor);
+        const toggleButtonPadding = Math.round(20 * scaleFactor);
+        const toggleButtonPaddingV = Math.round(8 * scaleFactor);
+        const dragToggleButton = this.add.text(Math.round(50 * scaleFactor), dragModeY, this.dragToKillEnabled ? 'ON' : 'OFF', {
+            fontSize: `${toggleButtonFontSize}px`,
             color: 'white'
         })
         .setOrigin(0.5)
-        .setPadding(20, 8, 20, 8)
+        .setPadding(toggleButtonPadding, toggleButtonPaddingV, toggleButtonPadding, toggleButtonPaddingV)
         .setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#666' })
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
@@ -944,8 +965,11 @@ export default class BubblePopScene extends Phaser.Scene {
         .on('pointerover', () => dragToggleButton.setStyle({ fill: '#f39c12' }))
         .on('pointerout', () => dragToggleButton.setStyle({ fill: '#FFF' }));
 
-        const dragDescription = this.add.text(0, 90, 'When enabled, drag to pop bubbles\ninstead of clicking', {
-            fontSize: '14px',
+        // Description text - scale font and position
+        const descriptionFontSize = Math.round(14 * scaleFactor);
+        const descriptionY = Math.round(90 * scaleFactor);
+        const dragDescription = this.add.text(0, descriptionY, 'When enabled, drag to pop bubbles\ninstead of clicking', {
+            fontSize: `${descriptionFontSize}px`,
             color: '#ccc',
             align: 'center'
         }).setOrigin(0.5);
@@ -959,9 +983,12 @@ export default class BubblePopScene extends Phaser.Scene {
         });
 
         // Add click areas to the panel (these need to be added separately as they contain interaction logic)
+        // Scale the click areas too
+        const clickAreaWidth = Math.round(200 * scaleFactor);
+        const clickAreaHeight = Math.round(25 * scaleFactor);
         bubbleCountLabels.forEach((label, index) => {
-            const yPosition = -90 + (index * 25);
-            const clickArea = this.add.rectangle(this.cameras.main.centerX - 50, this.cameras.main.centerY + yPosition, 200, 25, 0x000000, 0)
+            const yPosition = Math.round(-90 * scaleFactor) + (index * optionSpacing);
+            const clickArea = this.add.rectangle(this.cameras.main.centerX + Math.round(-50 * scaleFactor), this.cameras.main.centerY + yPosition, clickAreaWidth, clickAreaHeight, 0x000000, 0)
                 .setInteractive({ useHandCursor: true })
                 .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
                     event.stopPropagation();
