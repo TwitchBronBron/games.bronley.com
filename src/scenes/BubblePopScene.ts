@@ -295,6 +295,12 @@ export default class BubblePopScene extends Phaser.Scene {
                     bubble.y = y;
                     bubble.setVisible(true);
 
+                    // Add to active bubbles set immediately
+                    this.bubbles.add(bubble);
+
+                    // Set up interactivity immediately, before fade-in animation
+                    this.resetBubbleInteractivity(bubble);
+
                     // Start with alpha 0 for fade-in animation
                     bubble.setAlpha(0);
 
@@ -305,13 +311,9 @@ export default class BubblePopScene extends Phaser.Scene {
                         ease: 'Cubic.easeInOut',
                         duration: 1500,
                         onComplete: () => {
-                            // Reset interactive state and animations after fade-in completes
-                            this.resetBubbleInteractivity(bubble);
+                            // Animation complete - bubble is now fully visible and interactive
                         }
                     });
-
-                    // Add to active bubbles set
-                    this.bubbles.add(bubble);
                 }
             });
         }
@@ -656,7 +658,7 @@ export default class BubblePopScene extends Phaser.Scene {
             bubble.on('pointerdown', () => {
                 // Don't pop bubbles if settings panel is open
                 if (this.settingsPanelVisible) return;
-                
+
                 // Double-check bubble is still in active set before popping
                 if (this.bubbles.has(bubble)) {
                     this.popBubble(bubble);
