@@ -391,15 +391,15 @@ export default class BubblePopScene extends Phaser.Scene {
         this.addPlayAgainButton();
     }
 
-    private cleanupBubbles() {
+    private cleanupBubbles(preserveSettingsPanel = false) {
         // Clear all pending refill timers first
         this.pendingRefills.clear();
 
         // Remove all pending time events to prevent phantom bubbles
         this.time.removeAllEvents();
 
-        // Clean up settings panel if it's open
-        if (this.settingsPanelVisible) {
+        // Clean up settings panel if it's open (unless we want to preserve it)
+        if (this.settingsPanelVisible && !preserveSettingsPanel) {
             this.settingsPanel?.destroy();
             this.settingsBackground?.destroy();
             this.settingsPanelVisible = false;
@@ -678,13 +678,15 @@ export default class BubblePopScene extends Phaser.Scene {
         this.progressText.setText(displayText);
 
         // Reset the game with new bubble count
-        this.resetGame();
-    }    private resetGame() {
+        this.resetGame(true); // Preserve settings panel when changing bubble count
+    }
+
+    private resetGame(preserveSettingsPanel = false) {
         // Set reset flag to prevent phantom bubble creation
         this.isResetting = true;
 
         // Clear all existing bubbles and completely reset state
-        this.cleanupBubbles();
+        this.cleanupBubbles(preserveSettingsPanel);
 
         // Reset game state
         this.bubblesPopped = 0;
@@ -908,7 +910,12 @@ export default class BubblePopScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
             event.stopPropagation();
-            if (this.TOTAL_BUBBLES !== -1) {
+            if (this.TOTAL_BUBBLES === -1) {
+                // Exit infinite mode and set to 45 (50 - 5)
+                const newCount = 45;
+                this.setBubbleCount(newCount);
+                this.updateInfiniteButtonAndCountText(infiniteButton, bubbleCountText);
+            } else {
                 const newCount = Math.max(5, this.TOTAL_BUBBLES - 5);
                 this.setBubbleCount(newCount);
                 bubbleCountText.setText(newCount.toString());
@@ -938,7 +945,12 @@ export default class BubblePopScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
             event.stopPropagation();
-            if (this.TOTAL_BUBBLES !== -1) {
+            if (this.TOTAL_BUBBLES === -1) {
+                // Exit infinite mode and set to 55 (50 + 5)
+                const newCount = 55;
+                this.setBubbleCount(newCount);
+                this.updateInfiniteButtonAndCountText(infiniteButton, bubbleCountText);
+            } else {
                 const newCount = this.TOTAL_BUBBLES + 5;
                 this.setBubbleCount(newCount);
                 bubbleCountText.setText(newCount.toString());
@@ -962,16 +974,11 @@ export default class BubblePopScene extends Phaser.Scene {
             if (this.TOTAL_BUBBLES === -1) {
                 // Exit infinite mode - set to 50
                 this.setBubbleCount(50);
-                infiniteButton.setText('Infinite Mode');
-                infiniteButton.setStyle({ backgroundColor: '#006600' });
-                bubbleCountText.setText('50');
             } else {
                 // Enter infinite mode
                 this.setBubbleCount(-1);
-                infiniteButton.setText('Exit Infinite');
-                infiniteButton.setStyle({ backgroundColor: '#cc6600' });
-                bubbleCountText.setText('∞');
             }
+            this.updateInfiniteButtonAndCountText(infiniteButton, bubbleCountText);
         })
         .on('pointerover', () => infiniteButton.setStyle({ fill: '#f39c12' }))
         .on('pointerout', () => infiniteButton.setStyle({ fill: '#FFF' }));
@@ -1073,6 +1080,22 @@ export default class BubblePopScene extends Phaser.Scene {
         const buttonHeight = Math.round(60 * scaleFactor) + Math.round(12 * scaleFactor * 2); // font size + vertical padding
 
         return buttonHeight - 10;
+    }
+
+    /**
+     * Helper function to update the infinite button text/style and bubble count text
+     * based on the current TOTAL_BUBBLES value
+     */
+    private updateInfiniteButtonAndCountText(infiniteButton: Text, bubbleCountText: Text) {
+        if (this.TOTAL_BUBBLES === -1) {
+            infiniteButton.setText('Exit Infinite');
+            infiniteButton.setStyle({ backgroundColor: '#cc6600' });
+            bubbleCountText.setText('∞');
+        } else {
+            infiniteButton.setText('Infinite Mode');
+            infiniteButton.setStyle({ backgroundColor: '#006600' });
+            bubbleCountText.setText(this.TOTAL_BUBBLES.toString());
+        }
     }
 
 }
