@@ -781,21 +781,21 @@ export default class BubblePopScene extends Phaser.Scene {
         // Create radio buttons for bubble count options
         const bubbleCountOptions: Array<{radio: Phaser.GameObjects.Arc, label: Phaser.GameObjects.Text}> = [];
         const bubbleCountLabels = ['20', '50', '200', '∞'];
-        
+
         bubbleCountLabels.forEach((label, index) => {
             const yPosition = -90 + (index * 25);
             const isSelected = this.bubbleCountIndex === index;
-            
+
             // Radio button circle
             const radioButton = this.add.circle(-100, yPosition, 8, isSelected ? 0x00ff00 : 0x666666);
             radioButton.setStrokeStyle(2, 0xffffff);
-            
+
             // Option label
             const optionLabel = this.add.text(-80, yPosition, label, {
                 fontSize: '18px',
                 color: isSelected ? '#00ff00' : 'white'
             }).setOrigin(0, 0.5);
-            
+
             // Store the radio button and label
             bubbleCountOptions.push({radio: radioButton, label: optionLabel});
         });
@@ -841,12 +841,12 @@ export default class BubblePopScene extends Phaser.Scene {
 
         // Add all elements to the container
         this.settingsPanel.add([panelBg, title, closeButton, bubbleCountLabel, dragLabel, dragToggleButton, dragDescription]);
-        
+
         // Add the bubble count radio buttons to the panel
         bubbleCountOptions.forEach(option => {
             this.settingsPanel.add([option.radio, option.label]);
         });
-        
+
         // Add click areas to the panel (these need to be added separately as they contain interaction logic)
         bubbleCountLabels.forEach((label, index) => {
             const yPosition = -90 + (index * 25);
@@ -854,7 +854,7 @@ export default class BubblePopScene extends Phaser.Scene {
                 .setInteractive({ useHandCursor: true })
                 .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
                     event.stopPropagation();
-                    
+
                     // Update all radio buttons
                     bubbleCountOptions.forEach((option, btnIndex) => {
                         if (btnIndex === index) {
@@ -865,10 +865,10 @@ export default class BubblePopScene extends Phaser.Scene {
                             option.label.setColor('white');
                         }
                     });
-                    
+
                     // Update the bubble count
                     this.cycleBubbleCount(index);
-                    
+
                     // Close settings panel after selection
                     this.time.delayedCall(300, () => this.hideSettingsPanel());
                 })

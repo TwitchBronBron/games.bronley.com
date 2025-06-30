@@ -1,7 +1,20 @@
 import { defineConfig } from 'vite';
 import replace from '@rollup/plugin-replace';
 
+// Generate build timestamp
+const buildTimestamp = new Date().toLocaleString('en-US', {
+  year: 'numeric',
+  month: '2-digit',  
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false
+}).replace(/(\d+)\/(\d+)\/(\d+), (\d+:\d+)/, '$3-$1-$2 $4');
+
 export default defineConfig({
+  define: {
+    __BUILD_TIMESTAMP__: JSON.stringify(buildTimestamp),
+  },
   server: {
     host: '0.0.0.0', // Allow external connections
     port: 5173, // Optional: specify default port
@@ -25,7 +38,7 @@ export default defineConfig({
           'typeof PLUGIN_FBINSTANT': "'false'",
           'typeof FEATURE_SOUND': "'true'",
           preventAssignment: true
-        })
+        }) as any
       ]
     }
   }
