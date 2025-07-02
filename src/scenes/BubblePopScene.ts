@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { SceneName } from '../constants';
-import { createColorFactory, randomInt } from '../util';
+import { createColorFactory, preloadSound, randomInt, playSound } from '../util';
 type GameObject = Phaser.GameObjects.GameObject;
 type Sprite = Phaser.GameObjects.Sprite;
 type Pointer = Phaser.Input.Pointer;
@@ -48,17 +48,11 @@ export default class BubblePopScene extends Phaser.Scene {
         this.load.image('bubble', 'assets/images/bubble.png');
         this.load.image('spark', 'assets/images/particle.png');
 
-        this.load.audio('pop', 'assets/audio/pop.mp3').once('filecomplete-audio-pop', (key: string) => {
-            console.log('pop sound loaded');
-            this.popSound = this.sound.add(key);
-        });
+        preloadSound(this, 'pop');
+        preloadSound(this, 'victory');
+    }
 
-        this.load.audio('victory', ['assets/audio/sparkle.mp3']).once('filecomplete-audio-victory', () => {
-            console.log('victory sound loaded');
-            this.victorySound = this.sound.add('victory');
-        });
-
-    } create() {
+    create() {
         console.log('create bubble scene');
         this.loadSettings(); // Load saved settings before creating the scene
         this.cleanupBubbles(); // Clean up any existing bubbles from previous runs
@@ -387,7 +381,7 @@ export default class BubblePopScene extends Phaser.Scene {
     }
 
     finalize() {
-        this.victorySound?.play();
+        playSound(this, 'victory');
         this.addPlayAgainButton();
     }
 
@@ -449,7 +443,6 @@ export default class BubblePopScene extends Phaser.Scene {
     private settingsPanelVisible = false;
 
     private popSound!: Phaser.Sound.BaseSound;
-    private victorySound!: Phaser.Sound.BaseSound;
     private colorFactory = createColorFactory();
 
     private bubbleWidth = 0;
@@ -875,13 +868,13 @@ export default class BubblePopScene extends Phaser.Scene {
             fontSize: `${closeButtonFontSize}px`,
             color: 'white'
         })
-        .setOrigin(0.5)
-        .setPadding(closeButtonPaddingH, closeButtonPaddingV, closeButtonPaddingH, closeButtonPaddingV)
-        .setStyle({ backgroundColor: '#666' })
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => this.hideSettingsPanel())
-        .on('pointerover', () => closeButton.setStyle({ fill: '#f39c12', backgroundColor: '#888' }))
-        .on('pointerout', () => closeButton.setStyle({ fill: '#FFF', backgroundColor: '#666' }));
+            .setOrigin(0.5)
+            .setPadding(closeButtonPaddingH, closeButtonPaddingV, closeButtonPaddingH, closeButtonPaddingV)
+            .setStyle({ backgroundColor: '#666' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => this.hideSettingsPanel())
+            .on('pointerover', () => closeButton.setStyle({ fill: '#f39c12', backgroundColor: '#888' }))
+            .on('pointerout', () => closeButton.setStyle({ fill: '#FFF', backgroundColor: '#666' }));
 
         // Bubble Count Selection - scale font and position larger
         const labelFontSize = Math.round(32 * scaleFactor); // Increased from 20
@@ -904,25 +897,25 @@ export default class BubblePopScene extends Phaser.Scene {
             fontSize: `${buttonFontSize}px`,
             color: 'white'
         })
-        .setOrigin(0.5)
-        .setPadding(buttonPadding, buttonPaddingV, buttonPadding, buttonPaddingV)
-        .setStyle({ backgroundColor: '#555' })
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
-            event.stopPropagation();
-            if (this.TOTAL_BUBBLES === -1) {
-                // Exit infinite mode and set to 45 (50 - 5)
-                const newCount = 45;
-                this.setBubbleCount(newCount);
-                this.updateInfiniteButtonAndCountText(infiniteButton, bubbleCountText);
-            } else {
-                const newCount = Math.max(5, this.TOTAL_BUBBLES - 5);
-                this.setBubbleCount(newCount);
-                bubbleCountText.setText(newCount.toString());
-            }
-        })
-        .on('pointerover', () => minusButton.setStyle({ fill: '#f39c12', backgroundColor: '#777' }))
-        .on('pointerout', () => minusButton.setStyle({ fill: '#FFF', backgroundColor: '#555' }));
+            .setOrigin(0.5)
+            .setPadding(buttonPadding, buttonPaddingV, buttonPadding, buttonPaddingV)
+            .setStyle({ backgroundColor: '#555' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
+                if (this.TOTAL_BUBBLES === -1) {
+                    // Exit infinite mode and set to 45 (50 - 5)
+                    const newCount = 45;
+                    this.setBubbleCount(newCount);
+                    this.updateInfiniteButtonAndCountText(infiniteButton, bubbleCountText);
+                } else {
+                    const newCount = Math.max(5, this.TOTAL_BUBBLES - 5);
+                    this.setBubbleCount(newCount);
+                    bubbleCountText.setText(newCount.toString());
+                }
+            })
+            .on('pointerover', () => minusButton.setStyle({ fill: '#f39c12', backgroundColor: '#777' }))
+            .on('pointerout', () => minusButton.setStyle({ fill: '#FFF', backgroundColor: '#555' }));
 
         // Current count textbox
         const currentCountText = this.TOTAL_BUBBLES === -1 ? '∞' : this.TOTAL_BUBBLES.toString();
@@ -930,34 +923,34 @@ export default class BubblePopScene extends Phaser.Scene {
             fontSize: `${textboxFontSize}px`,
             color: 'white'
         })
-        .setOrigin(0.5)
-        .setPadding(Math.round(20 * scaleFactor), Math.round(10 * scaleFactor), Math.round(20 * scaleFactor), Math.round(10 * scaleFactor))
-        .setStyle({ backgroundColor: '#222', borderColor: '#666', borderWidth: 2 });
+            .setOrigin(0.5)
+            .setPadding(Math.round(20 * scaleFactor), Math.round(10 * scaleFactor), Math.round(20 * scaleFactor), Math.round(10 * scaleFactor))
+            .setStyle({ backgroundColor: '#222', borderColor: '#666', borderWidth: 2 });
 
         // +5 button
         const plusButton = this.add.text(Math.round(120 * scaleFactor), controlY, '+5', {
             fontSize: `${buttonFontSize}px`,
             color: 'white'
         })
-        .setOrigin(0.5)
-        .setPadding(buttonPadding, buttonPaddingV, buttonPadding, buttonPaddingV)
-        .setStyle({ backgroundColor: '#555' })
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
-            event.stopPropagation();
-            if (this.TOTAL_BUBBLES === -1) {
-                // Exit infinite mode and set to 55 (50 + 5)
-                const newCount = 55;
-                this.setBubbleCount(newCount);
-                this.updateInfiniteButtonAndCountText(infiniteButton, bubbleCountText);
-            } else {
-                const newCount = this.TOTAL_BUBBLES + 5;
-                this.setBubbleCount(newCount);
-                bubbleCountText.setText(newCount.toString());
-            }
-        })
-        .on('pointerover', () => plusButton.setStyle({ fill: '#f39c12', backgroundColor: '#777' }))
-        .on('pointerout', () => plusButton.setStyle({ fill: '#FFF', backgroundColor: '#555' }));
+            .setOrigin(0.5)
+            .setPadding(buttonPadding, buttonPaddingV, buttonPadding, buttonPaddingV)
+            .setStyle({ backgroundColor: '#555' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
+                if (this.TOTAL_BUBBLES === -1) {
+                    // Exit infinite mode and set to 55 (50 + 5)
+                    const newCount = 55;
+                    this.setBubbleCount(newCount);
+                    this.updateInfiniteButtonAndCountText(infiniteButton, bubbleCountText);
+                } else {
+                    const newCount = this.TOTAL_BUBBLES + 5;
+                    this.setBubbleCount(newCount);
+                    bubbleCountText.setText(newCount.toString());
+                }
+            })
+            .on('pointerover', () => plusButton.setStyle({ fill: '#f39c12', backgroundColor: '#777' }))
+            .on('pointerout', () => plusButton.setStyle({ fill: '#FFF', backgroundColor: '#555' }));
 
         // Infinite mode button
         const infiniteY = Math.round(-60 * scaleFactor);
@@ -965,23 +958,23 @@ export default class BubblePopScene extends Phaser.Scene {
             fontSize: `${buttonFontSize}px`,
             color: 'white'
         })
-        .setOrigin(0.5)
-        .setPadding(Math.round(24 * scaleFactor), buttonPaddingV, Math.round(24 * scaleFactor), buttonPaddingV)
-        .setStyle({ backgroundColor: this.TOTAL_BUBBLES === -1 ? '#cc6600' : '#006600' })
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
-            event.stopPropagation();
-            if (this.TOTAL_BUBBLES === -1) {
-                // Exit infinite mode - set to 50
-                this.setBubbleCount(50);
-            } else {
-                // Enter infinite mode
-                this.setBubbleCount(-1);
-            }
-            this.updateInfiniteButtonAndCountText(infiniteButton, bubbleCountText);
-        })
-        .on('pointerover', () => infiniteButton.setStyle({ fill: '#f39c12' }))
-        .on('pointerout', () => infiniteButton.setStyle({ fill: '#FFF' }));
+            .setOrigin(0.5)
+            .setPadding(Math.round(24 * scaleFactor), buttonPaddingV, Math.round(24 * scaleFactor), buttonPaddingV)
+            .setStyle({ backgroundColor: this.TOTAL_BUBBLES === -1 ? '#cc6600' : '#006600' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
+                if (this.TOTAL_BUBBLES === -1) {
+                    // Exit infinite mode - set to 50
+                    this.setBubbleCount(50);
+                } else {
+                    // Enter infinite mode
+                    this.setBubbleCount(-1);
+                }
+                this.updateInfiniteButtonAndCountText(infiniteButton, bubbleCountText);
+            })
+            .on('pointerover', () => infiniteButton.setStyle({ fill: '#f39c12' }))
+            .on('pointerout', () => infiniteButton.setStyle({ fill: '#FFF' }));
 
         // Drag Mode Toggle - scale positions, fonts, and padding larger
         const dragModeY = Math.round(100 * scaleFactor); // Moved down for larger spacing
@@ -997,28 +990,28 @@ export default class BubblePopScene extends Phaser.Scene {
             fontSize: `${toggleButtonFontSize}px`,
             color: 'white'
         })
-        .setOrigin(0.5)
-        .setPadding(toggleButtonPadding, toggleButtonPaddingV, toggleButtonPadding, toggleButtonPaddingV)
-        .setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#666' })
-        .setInteractive({ useHandCursor: true })
-        .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
-            event.stopPropagation();
-            this.dragToKillEnabled = !this.dragToKillEnabled;
-            dragToggleButton.setText(this.dragToKillEnabled ? 'ON' : 'OFF');
-            dragToggleButton.setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#666' });
+            .setOrigin(0.5)
+            .setPadding(toggleButtonPadding, toggleButtonPaddingV, toggleButtonPadding, toggleButtonPaddingV)
+            .setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#666' })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
+                this.dragToKillEnabled = !this.dragToKillEnabled;
+                dragToggleButton.setText(this.dragToKillEnabled ? 'ON' : 'OFF');
+                dragToggleButton.setStyle({ backgroundColor: this.dragToKillEnabled ? '#006600' : '#666' });
 
-            // Save the new setting
-            this.saveSettings();
+                // Save the new setting
+                this.saveSettings();
 
-            // Update all existing bubbles to use the new interaction mode
-            this.time.delayedCall(10, () => {
-                this.bubbles.forEach(bubble => {
-                    this.resetBubbleInteractivity(bubble);
+                // Update all existing bubbles to use the new interaction mode
+                this.time.delayedCall(10, () => {
+                    this.bubbles.forEach(bubble => {
+                        this.resetBubbleInteractivity(bubble);
+                    });
                 });
-            });
-        })
-        .on('pointerover', () => dragToggleButton.setStyle({ fill: '#f39c12' }))
-        .on('pointerout', () => dragToggleButton.setStyle({ fill: '#FFF' }));
+            })
+            .on('pointerover', () => dragToggleButton.setStyle({ fill: '#f39c12' }))
+            .on('pointerout', () => dragToggleButton.setStyle({ fill: '#FFF' }));
 
         // Description text - scale font and position larger
         const descriptionFontSize = Math.round(22 * scaleFactor); // Increased from 14

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { SceneName } from '../constants';
-import { createColorFactory, randomInt, spliceRandom } from '../util';
+import { playSound, preloadSound, randomInt, spliceRandom } from '../util';
 type GameObject = Phaser.GameObjects.GameObject;
 type Sprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 type Pointer = Phaser.Input.Pointer;
@@ -12,21 +12,13 @@ export default class ShapeRepairScene extends Phaser.Scene {
         super(SceneName.ShapeRepairScene);
     }
 
-    private quadrantColumnCount = 2;
+    private quadrantColumnCount = 1;
     private quadrantRowCount = 3;
     private resetPositionSpeed = 4500;
 
     preload() {
-        console.log('preload shape scene');
-        this.load.audio('whoosh', ['assets/audio/whoosh.mp3']).once('filecomplete-audio-whoosh', () => {
-            console.log('whoosh sound loaded');
-            this.whooshSound = this.sound.add('whoosh');
-        });
-
-        this.load.audio('victory', ['assets/audio/sparkle.mp3']).once('filecomplete-audio-victory', () => {
-            console.log('victory sound loaded');
-            this.victorySound = this.sound.add('victory');
-        });
+        preloadSound(this, 'whoosh');
+        preloadSound(this, 'victory');
     }
 
     create() {
@@ -116,9 +108,6 @@ export default class ShapeRepairScene extends Phaser.Scene {
 
     private backButton!: Text;
 
-    private whooshSound!: Phaser.Sound.BaseSound;
-    private victorySound!: Phaser.Sound.BaseSound;
-
 
     private addBackButton() {
         this.backButton = this.add.text(10, 10, '←', { fontSize: '48px', color: 'white' })
@@ -151,8 +140,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
     }
 
     private finishRound() {
-        console.log('finishRound() called - game completed!');
-        this.victorySound?.play();
+        playSound(this, 'victory');
         this.addPlayAgainButton();
     }
 
@@ -176,7 +164,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
         // Clear movements array
         this.movements = [];
 
-        // Destroy all children except physics world
+        // Destroy all children except physics world, but preserve sounds
         const children = [...this.children.list];
         for (const child of children) {
             if (child && (child as any).destroy) {
@@ -200,7 +188,7 @@ export default class ShapeRepairScene extends Phaser.Scene {
         this.pairsRemaining--;
         console.log('Pair completed! Remaining pairs:', this.pairsRemaining);
 
-        this.whooshSound?.play();
+        playSound(this, 'whoosh');
 
         // Create scale up tween
         this.tweens.add({

@@ -125,3 +125,32 @@ export function createColorFactory() {
         return spliceRandom(colors);
     };
 }
+
+const sounds = {
+    'victory': 'assets/audio/sparkle.mp3',
+    'whoosh': 'assets/audio/whoosh.mp3',
+    'pop': 'assets/audio/pop.mp3'
+};
+export type SoundName = keyof typeof sounds;
+
+export function preloadSound(scene: Phaser.Scene & Record<string, any>, soundName: SoundName, callback?: (sound: Phaser.Sound.BaseSound) => void) {
+    const key = `${soundName}Sound`;
+    if (!scene[key]) {
+        scene.load.audio(soundName, [sounds[soundName]]).once(`filecomplete-audio-${soundName}`, () => {
+            scene[key] = scene.sound.add(soundName);
+            callback?.(scene[key]);
+        });
+    } else {
+        callback?.(scene[key]);
+    }
+}
+
+export function playSound(scene: Phaser.Scene & Record<string, any>, soundName: SoundName) {
+    if (!scene.sound) {
+        return;
+    }
+    preloadSound(scene, soundName, (sound) => {
+        sound?.play?.();
+
+    });
+}
