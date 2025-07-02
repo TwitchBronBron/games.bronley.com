@@ -133,11 +133,25 @@ const sounds = {
 };
 export type SoundName = keyof typeof sounds;
 
+// Global sound cache to persist across scene switches
+const globalSoundCache = new Map<string, Phaser.Sound.BaseSound>();
+
 export function preloadSound(scene: Phaser.Scene & Record<string, any>, soundName: SoundName, callback?: (sound: Phaser.Sound.BaseSound) => void) {
     const key = `${soundName}Sound`;
+
+    // Check if we already have this sound in the global cache
+    if (globalSoundCache.has(soundName)) {
+        const cachedSound = globalSoundCache.get(soundName)!;
+        scene[key] = cachedSound;
+        callback?.(cachedSound);
+        return;
+    }
+
     if (!scene[key]) {
         scene.load.audio(soundName, [sounds[soundName]]).once(`filecomplete-audio-${soundName}`, () => {
             scene[key] = scene.sound.add(soundName);
+            // Store in global cache
+            globalSoundCache.set(soundName, scene[key]);
             callback?.(scene[key]);
         });
     } else {
@@ -146,11 +160,50 @@ export function preloadSound(scene: Phaser.Scene & Record<string, any>, soundNam
 }
 
 export function playSound(scene: Phaser.Scene & Record<string, any>, soundName: SoundName) {
+    console.log(`playSound called for ${soundName} in scene ${scene.scene.key}`);
+
     if (!scene.sound) {
+        console.log('No sound manager available');
         return;
     }
-    preloadSound(scene, soundName, (sound) => {
-        sound?.play?.();
 
-    });
+    // Try to get sound from global cache first
+    if (globalSoundCache.has(soundName)) {
+        const cachedSound = globalSoundCache.get(soundName)!;
+        try {
+            console.log(`Playing cached sound for ${soundName}`);
+            cachedSound.play();
+            return;
+        } catch (e) {
+            // If cached sound is invalid, remove it and continue with normal flow
+            console.log(`Cached sound for ${soundName} is invalid, removing from cache`);
+            globalSoundCache.delete(soundName);
+        }
+    }
+
+    // Always try to get/create a fresh sound object for the current scene
+    const key = `${soundName}Sound`;
+
+    // Check if the sound exists and is valid
+    if (scene[key] && scene[key].scene === scene) {
+        console.log(`Playing scene-local sound for ${soundName}`);
+        scene[key].play();
+        return;
+    }
+
+    // If sound doesn't exist or belongs to a different scene, create a new one
+    if (scene.cache.audio.exists(soundName)) {
+        // Audio is already loaded, create sound directly
+        console.log(`Creating new sound for ${soundName} from existing audio cache`);
+        scene[key] = scene.sound.add(soundName);
+        globalSoundCache.set(soundName, scene[key]);
+        scene[key].play();
+    } else {
+        // Audio needs to be loaded first
+        console.log(`Loading audio for ${soundName}`);
+        preloadSound(scene, soundName, (sound) => {
+            console.log(`Playing newly loaded sound for ${soundName}`);
+            sound?.play?.();
+        });
+    }
 }
